@@ -38,22 +38,38 @@ namespace game::difficulty
     constexpr fixed player_dodge_velocity = to_fixed(player_dodge_distance) / player_dodge_duration_frames;
 
     // MP economy — locked by SPEC.md.
-    constexpr int player_max_mp = 100;
+    constexpr int player_base_mp = 100;
     constexpr int player_mp_regen_frames = 6; // 1 MP every N frames
 
-    // No player STR stat exists yet (that's M2) — first-draft effective attack
-    // power used against enemies until the real stat block exists.
-    constexpr int player_attack_damage = 12;
-
     // Player HP / i-frames — locked by SPEC.md.
-    constexpr int player_max_hp = 100;
+    constexpr int player_base_hp = 100;
     constexpr int player_invuln_frames = 40;
+
+    // --- The seven stats & leveling (SPEC.md section 5) — locked values ---
+    constexpr int player_hp_per_level = 8;
+    constexpr int player_mp_per_level = 5;
+    constexpr int player_base_hearts = 50; // no per-level change (subweapon fuel — not built yet)
+    constexpr int player_base_str = 10;
+    constexpr int player_str_per_level = 2;
+    constexpr int player_base_def = 10;
+    constexpr int player_def_per_level = 2;
+    constexpr int player_base_int = 10;    // Arcana spell power — not built yet, tracked but inert
+    constexpr int player_int_per_level = 2;
+    constexpr int player_base_lck = 10;    // drop rate + crit — not built yet, tracked but inert
+    constexpr int player_lck_per_level = 2;
+
+    // EXP required to go from `level` to `level + 1`.
+    constexpr int exp_for_next_level(int level)
+    {
+        return level * level * 8;
+    }
 
     // --- Skeleton enemy (enemies.md) — walker ---
     // Stats locked by enemies.md — do not change without checking there first.
     constexpr int skeleton_max_hp = 18;
     constexpr int skeleton_damage = 10;
     constexpr int skeleton_defense = 4;
+    constexpr int skeleton_exp_reward = 8;
     constexpr int skeleton_bone_throw_interval_frames = 90;
     constexpr fixed skeleton_speed = (player_run_speed * 4) / 5; // "Speed 0.8" relative to player_run_speed
 
@@ -70,6 +86,7 @@ namespace game::difficulty
     constexpr int bat_max_hp = 10;
     constexpr int bat_damage = 7;
     constexpr int bat_defense = 1;
+    constexpr int bat_exp_reward = 4;
     constexpr fixed bat_trigger_range = to_fixed(80);        // "idles until player within 80px"
     constexpr fixed bat_speed = (player_run_speed * 12) / 10; // "Speed 1.2"
     // "Erratic swoop" has no exact spec — first draft: a simple zigzag wiggle.
@@ -80,6 +97,7 @@ namespace game::difficulty
     constexpr int archer_max_hp = 22;
     constexpr int archer_damage = 14;
     constexpr int archer_defense = 6;
+    constexpr int archer_exp_reward = 18;
     constexpr fixed archer_retreat_range = to_fixed(50); // "backs away if player closes to 50px"
     constexpr fixed archer_speed = (player_run_speed * 6) / 10; // "Speed 0.6"
 
@@ -90,4 +108,31 @@ namespace game::difficulty
     constexpr fixed archer_arrow_speed_y = -(fixed_one + fixed_one / 2);
     constexpr fixed archer_arrow_gravity = fixed_one / 5;
     constexpr int archer_arrow_lifetime_frames = 60;
+
+    // --- The Rival — second character (SPEC.md section 3) ---
+    // Exact multipliers/frame counts aren't given beyond qualitative
+    // descriptions ("faster", "higher, floatier", "shorter i-frames") —
+    // first draft, tune by feel, same as the Hunter's own values above.
+    constexpr fixed rival_run_speed = (player_run_speed * 12) / 10;           // "faster"
+    constexpr fixed rival_gravity = (player_gravity * 8) / 10;                // "floatier"
+    constexpr fixed rival_jump_velocity = (player_jump_velocity * 115) / 100; // "higher"
+    constexpr fixed rival_jump_cut_velocity = (player_jump_cut_velocity * 115) / 100;
+
+    // Dash — distance is locked by SPEC.md (50px); duration is kept at the
+    // Hunter's 18f (not specified otherwise) with a shorter i-frame window.
+    constexpr int rival_dodge_distance = 50; // locked by SPEC.md
+    constexpr int rival_dodge_duration_frames = player_dodge_duration_frames;
+    constexpr fixed rival_dodge_velocity = to_fixed(rival_dodge_distance) / rival_dodge_duration_frames;
+    constexpr int rival_dodge_iframe_start = player_dodge_iframe_start;
+    constexpr int rival_dodge_iframe_end = 8; // "shorter i-frames" than the Hunter's 4-14
+
+    // Twin blades — short reach, fast, 3-hit combo, low damage per hit.
+    constexpr int rival_attack_startup_frames = 2;
+    constexpr int rival_attack_active_frames = 3;
+    constexpr int rival_attack_recovery_frames = 5;
+    constexpr fixed rival_attack_range = to_fixed(10);
+    constexpr fixed rival_attack_hitbox_half_width = to_fixed(6);
+    constexpr fixed rival_attack_hitbox_half_height = to_fixed(4);
+    constexpr int rival_combo_window_frames = 20; // time after a hit to chain the next one
+    constexpr int rival_damage_percent = 60;      // "Damage per hit: Low" vs the Hunter's 100%
 }

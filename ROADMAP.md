@@ -68,10 +68,10 @@ Expect to spend a week just tuning numbers here. That is correct.
 - [x] 3 enemy types (walker, flyer, shooter) — Skeleton, Bat, Skeleton Archer
 - [x] Enemy HP, damage, death
 - [x] Player HP, damage, i-frames
-- [ ] EXP and level-up
-- [ ] Basic HUD (HP, MP bars)
-- [ ] **The Rival** — second character, instant swap
-- [ ] Both movesets distinct and working
+- [x] EXP and level-up
+- [x] Basic HUD (HP, MP bars) — grey-box segment bars, not art yet
+- [x] **The Rival** — second character, instant swap
+- [x] Both movesets distinct and working
 
 ### 🔴 CHECKPOINT
 

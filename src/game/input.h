@@ -11,5 +11,6 @@ namespace game
         bool jump_held = false;
         bool attack_held = false;
         bool dodge_held = false;
+        bool swap_held = false;
     };
 }

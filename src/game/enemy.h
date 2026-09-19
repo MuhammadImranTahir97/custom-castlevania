@@ -26,17 +26,18 @@ namespace game
     void update_arc_projectile(arc_projectile& proj, fixed gravity, int lifetime_limit);
 
     // Applies the player's whip hitbox to any enemy with .x, .y, .hp, .alive
-    // and .prev_attack_active fields, once per swing.
+    // and .prev_attack_active fields, once per swing. Returns true if this
+    // call is what killed it (so the caller can grant EXP exactly once).
     template<typename EnemyState>
-    void apply_whip_to_enemy(EnemyState& enemy, int half_width, int half_height, int defense,
-            const attack_hitbox& hitbox)
+    bool apply_whip_to_enemy(EnemyState& enemy, int half_width, int half_height, int defense,
+            int attack_power, const attack_hitbox& hitbox)
     {
         bool attack_just_started = hitbox.active && ! enemy.prev_attack_active;
         enemy.prev_attack_active = hitbox.active;
 
         if(! enemy.alive || ! attack_just_started)
         {
-            return;
+            return false;
         }
 
         fixed half_w = to_fixed(half_width);
@@ -49,12 +50,7 @@ namespace game
 
         if(overlap_x && overlap_y)
         {
-            int damage = difficulty::player_attack_damage - defense;
-
-            if(damage < 1)
-            {
-                damage = 1;
-            }
+            int damage = apply_defense(attack_power, defense);
 
             enemy.hp -= damage;
 
@@ -62,8 +58,11 @@ namespace game
             {
                 enemy.hp = 0;
                 enemy.alive = false;
+                return true;
             }
         }
+
+        return false;
     }
 
     // Damages the player on contact with any alive enemy with .x, .y fields.

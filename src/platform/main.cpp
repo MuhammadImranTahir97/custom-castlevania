@@ -3,6 +3,7 @@
 #include "bn_sprite_ptr.h"
 
 #include "bn_sprite_items_player.h"
+#include "bn_sprite_items_rival.h"
 #include "bn_sprite_items_ground.h"
 #include "bn_sprite_items_ledge.h"
 #include "bn_sprite_items_hitbox.h"
@@ -11,6 +12,8 @@
 #include "bn_sprite_items_bat.h"
 #include "bn_sprite_items_archer.h"
 #include "bn_sprite_items_arrow.h"
+#include "bn_sprite_items_hud_hp.h"
+#include "bn_sprite_items_hud_mp.h"
 
 #include "enemy.h"
 #include "enemy_spawner.h"
@@ -22,6 +25,8 @@
 
 namespace
 {
+    constexpr int hud_segments = 10;
+
     // Placeholder-only room renderer: any platform 64px wide or narrower is
     // drawn as the single ledge tile; anything wider is sliced into 64px
     // ground tiles (up to 4). Real tile-based room art replaces this later
@@ -135,13 +140,30 @@ namespace
             }
         }
     }
+
+    // Basic HUD: a row of segments per bar, lit left-to-right by percentage.
+    // Real bars (per SPEC.md's mockup) come with real art later.
+    void render_hud(bn::sprite_ptr hp_sprites[hud_segments], bn::sprite_ptr mp_sprites[hud_segments],
+            const game::player_state& player)
+    {
+        int hp_lit = (player.hp * hud_segments) / player.max_hp;
+        int mp_lit = (player.mp * hud_segments) / player.max_mp;
+
+        for(int i = 0; i < hud_segments; ++i)
+        {
+            hp_sprites[i].set_visible(i < hp_lit);
+            mp_sprites[i].set_visible(i < mp_lit);
+        }
+    }
 }
 
 int main()
 {
     bn::core::init();
 
-    bn::sprite_ptr player_sprite = bn::sprite_items::player.create_sprite(0, 0);
+    bn::sprite_ptr hunter_sprite = bn::sprite_items::player.create_sprite(0, 0);
+    bn::sprite_ptr rival_sprite = bn::sprite_items::rival.create_sprite(0, 0);
+    rival_sprite.set_visible(false);
 
     // Room geometry is data-driven (assets/rooms/*.tmj, see src/game/level.cpp)
     // but every room reuses the same handful of placeholder tile sprites.
@@ -178,6 +200,22 @@ int main()
     for(bn::sprite_ptr& s : archer_sprites) { s.set_visible(false); }
     for(bn::sprite_ptr& s : arrow_sprites) { s.set_visible(false); }
 
+    // HUD: top-left corner, HP row above MP row, 10 segments of 8px each.
+    bn::sprite_ptr hp_hud_sprites[hud_segments] = {
+        bn::sprite_items::hud_hp.create_sprite(-112, -72), bn::sprite_items::hud_hp.create_sprite(-104, -72),
+        bn::sprite_items::hud_hp.create_sprite(-96, -72), bn::sprite_items::hud_hp.create_sprite(-88, -72),
+        bn::sprite_items::hud_hp.create_sprite(-80, -72), bn::sprite_items::hud_hp.create_sprite(-72, -72),
+        bn::sprite_items::hud_hp.create_sprite(-64, -72), bn::sprite_items::hud_hp.create_sprite(-56, -72),
+        bn::sprite_items::hud_hp.create_sprite(-48, -72), bn::sprite_items::hud_hp.create_sprite(-40, -72),
+    };
+    bn::sprite_ptr mp_hud_sprites[hud_segments] = {
+        bn::sprite_items::hud_mp.create_sprite(-112, -64), bn::sprite_items::hud_mp.create_sprite(-104, -64),
+        bn::sprite_items::hud_mp.create_sprite(-96, -64), bn::sprite_items::hud_mp.create_sprite(-88, -64),
+        bn::sprite_items::hud_mp.create_sprite(-80, -64), bn::sprite_items::hud_mp.create_sprite(-72, -64),
+        bn::sprite_items::hud_mp.create_sprite(-64, -64), bn::sprite_items::hud_mp.create_sprite(-56, -64),
+        bn::sprite_items::hud_mp.create_sprite(-48, -64), bn::sprite_items::hud_mp.create_sprite(-40, -64),
+    };
+
     game::level::spawn_point spawn = game::level::load_room(0);
 
     game::player_state player;
@@ -195,6 +233,7 @@ int main()
         input.jump_held = bn::keypad::held(bn::keypad::key_type::A);
         input.attack_held = bn::keypad::held(bn::keypad::key_type::B);
         input.dodge_held = bn::keypad::held(bn::keypad::key_type::R);
+        input.swap_held = bn::keypad::held(bn::keypad::key_type::L);
 
         game::update_player(player, input);
         game::update_world(player);
@@ -211,11 +250,17 @@ int main()
         game::update_enemies(player.x, player.y);
 
         game::attack_hitbox hitbox = game::get_attack_hitbox(player);
-        game::apply_attacks_to_enemies(hitbox);
+        game::apply_attacks_to_enemies(hitbox, player);
         game::apply_enemy_contact_to_player(player);
 
-        player_sprite.set_position(game::to_pixels(player.x), game::to_pixels(player.y));
-        player_sprite.set_horizontal_flip(player.facing < 0);
+        bool is_rival = player.character == game::character_kind::rival;
+        bn::sprite_ptr& active_sprite = is_rival ? rival_sprite : hunter_sprite;
+        bn::sprite_ptr& inactive_sprite = is_rival ? hunter_sprite : rival_sprite;
+
+        inactive_sprite.set_visible(false);
+        active_sprite.set_visible(true);
+        active_sprite.set_position(game::to_pixels(player.x), game::to_pixels(player.y));
+        active_sprite.set_horizontal_flip(player.facing < 0);
 
         hitbox_sprite.set_visible(hitbox.active);
 
@@ -227,6 +272,7 @@ int main()
         render_skeletons(skeleton_sprites, bone_sprites);
         render_bats(bat_sprites);
         render_archers(archer_sprites, arrow_sprites);
+        render_hud(hp_hud_sprites, mp_hud_sprites, player);
 
         bn::core::update();
     }

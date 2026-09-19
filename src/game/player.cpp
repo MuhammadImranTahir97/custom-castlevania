@@ -15,16 +15,94 @@ namespace game
             return level::ground_top_y_at(x) - to_fixed(player_half_height);
         }
 
-        void apply_horizontal_input(player_state& player, const input_state& input)
+        // --- Per-character movement tunables (SPEC.md section 3) ---
+
+        struct movement_tunables
+        {
+            fixed run_speed;
+            fixed gravity;
+            fixed jump_velocity;
+            fixed jump_cut_velocity;
+            fixed dodge_velocity;
+            int dodge_duration_frames;
+            int dodge_iframe_start;
+            int dodge_iframe_end;
+        };
+
+        movement_tunables tunables_for(character_kind character)
+        {
+            if(character == character_kind::rival)
+            {
+                return {
+                    difficulty::rival_run_speed,
+                    difficulty::rival_gravity,
+                    difficulty::rival_jump_velocity,
+                    difficulty::rival_jump_cut_velocity,
+                    difficulty::rival_dodge_velocity,
+                    difficulty::rival_dodge_duration_frames,
+                    difficulty::rival_dodge_iframe_start,
+                    difficulty::rival_dodge_iframe_end,
+                };
+            }
+
+            return {
+                difficulty::player_run_speed,
+                difficulty::player_gravity,
+                difficulty::player_jump_velocity,
+                difficulty::player_jump_cut_velocity,
+                difficulty::player_dodge_velocity,
+                difficulty::player_dodge_duration_frames,
+                difficulty::player_dodge_iframe_start,
+                difficulty::player_dodge_iframe_end,
+            };
+        }
+
+        // --- Per-character attack tunables ---
+
+        struct attack_tunables
+        {
+            int startup_frames;
+            int active_frames;
+            int recovery_frames;
+            fixed range;
+            fixed hitbox_half_width;
+            fixed hitbox_half_height;
+        };
+
+        attack_tunables attack_tunables_for(character_kind character)
+        {
+            if(character == character_kind::rival)
+            {
+                return {
+                    difficulty::rival_attack_startup_frames,
+                    difficulty::rival_attack_active_frames,
+                    difficulty::rival_attack_recovery_frames,
+                    difficulty::rival_attack_range,
+                    difficulty::rival_attack_hitbox_half_width,
+                    difficulty::rival_attack_hitbox_half_height,
+                };
+            }
+
+            return {
+                difficulty::player_attack_startup_frames,
+                difficulty::player_attack_active_frames,
+                difficulty::player_attack_recovery_frames,
+                difficulty::player_attack_range,
+                difficulty::player_attack_hitbox_half_width,
+                difficulty::player_attack_hitbox_half_height,
+            };
+        }
+
+        void apply_horizontal_input(player_state& player, const input_state& input, const movement_tunables& t)
         {
             if(input.left && !input.right)
             {
-                player.velocity_x = -difficulty::player_run_speed;
+                player.velocity_x = -t.run_speed;
                 player.facing = -1;
             }
             else if(input.right && !input.left)
             {
-                player.velocity_x = difficulty::player_run_speed;
+                player.velocity_x = t.run_speed;
                 player.facing = 1;
             }
             else
@@ -47,9 +125,9 @@ namespace game
             }
         }
 
-        void apply_gravity(player_state& player)
+        void apply_gravity(player_state& player, const movement_tunables& t)
         {
-            player.velocity_y += difficulty::player_gravity;
+            player.velocity_y += t.gravity;
 
             if(player.velocity_y > difficulty::player_max_fall_speed)
             {
@@ -57,26 +135,26 @@ namespace game
             }
         }
 
-        void try_jump(player_state& player)
+        void try_jump(player_state& player, const movement_tunables& t)
         {
             bool can_coyote_jump = player.frames_since_grounded <= difficulty::player_coyote_frames;
 
             if(player.jump_buffer_frames > 0 && (player.grounded || can_coyote_jump))
             {
-                player.velocity_y = difficulty::player_jump_velocity;
+                player.velocity_y = t.jump_velocity;
                 player.grounded = false;
                 player.jump_buffer_frames = 0;
                 player.frames_since_grounded = difficulty::player_coyote_frames + 1;
             }
         }
 
-        void apply_jump_cut(player_state& player, const input_state& input)
+        void apply_jump_cut(player_state& player, const input_state& input, const movement_tunables& t)
         {
             bool jump_released = ! input.jump_held && player.prev_jump_held;
 
-            if(jump_released && player.velocity_y < difficulty::player_jump_cut_velocity)
+            if(jump_released && player.velocity_y < t.jump_cut_velocity)
             {
-                player.velocity_y = difficulty::player_jump_cut_velocity;
+                player.velocity_y = t.jump_cut_velocity;
             }
         }
 
@@ -131,7 +209,7 @@ namespace game
                 return;
             }
 
-            if(player.mp >= difficulty::player_max_mp)
+            if(player.mp >= player.max_mp)
             {
                 return;
             }
@@ -149,6 +227,20 @@ namespace game
         {
             player.action = action_kind::attack;
             player.action_timer = 0;
+
+            if(player.character == character_kind::rival)
+            {
+                if(player.combo_reset_timer > difficulty::rival_combo_window_frames)
+                {
+                    player.combo_step = 0;
+                }
+                else
+                {
+                    player.combo_step = (player.combo_step + 1) % 3;
+                }
+
+                player.combo_reset_timer = 0;
+            }
         }
 
         void start_dodge(player_state& player)
@@ -171,6 +263,8 @@ namespace game
 
         void update_normal(player_state& player, const input_state& input, bool attack_pressed, bool dodge_pressed)
         {
+            movement_tunables t = tunables_for(player.character);
+
             if(dodge_pressed && player.grounded)
             {
                 start_dodge(player);
@@ -183,19 +277,21 @@ namespace game
                 return;
             }
 
-            apply_horizontal_input(player, input);
+            apply_horizontal_input(player, input, t);
             apply_jump_buffer(player, input);
-            apply_gravity(player);
-            try_jump(player);
-            apply_jump_cut(player, input);
+            apply_gravity(player, t);
+            try_jump(player, t);
+            apply_jump_cut(player, input, t);
             move_and_collide(player);
         }
 
         void update_attack(player_state& player, const input_state& input, bool /*attack_pressed*/, bool dodge_pressed)
         {
-            constexpr int recovery_start = difficulty::player_attack_startup_frames
-                    + difficulty::player_attack_active_frames;
-            constexpr int total_frames = recovery_start + difficulty::player_attack_recovery_frames;
+            movement_tunables mt = tunables_for(player.character);
+            attack_tunables at = attack_tunables_for(player.character);
+
+            int recovery_start = at.startup_frames + at.active_frames;
+            int total_frames = recovery_start + at.recovery_frames;
 
             bool in_recovery = player.action_timer >= recovery_start;
             bool jump_pressed_edge = input.jump_held && ! player.prev_jump_held;
@@ -211,8 +307,8 @@ namespace game
             if(in_recovery && (input.left || input.right))
             {
                 player.action = action_kind::none;
-                apply_horizontal_input(player, input);
-                apply_gravity(player);
+                apply_horizontal_input(player, input, mt);
+                apply_gravity(player, mt);
                 move_and_collide(player);
                 return;
             }
@@ -222,14 +318,14 @@ namespace game
                 player.action = action_kind::none;
                 player.velocity_x = 0;
                 player.jump_buffer_frames = difficulty::player_input_buffer_frames;
-                apply_gravity(player);
-                try_jump(player);
+                apply_gravity(player, mt);
+                try_jump(player, mt);
                 move_and_collide(player);
                 return;
             }
 
             player.velocity_x = 0;
-            apply_gravity(player);
+            apply_gravity(player, mt);
             move_and_collide(player);
             ++player.action_timer;
 
@@ -241,7 +337,9 @@ namespace game
 
         void update_dodge(player_state& player, const input_state& /*input*/, bool attack_pressed, bool /*dodge_pressed*/)
         {
-            player.velocity_x = player.facing * difficulty::player_dodge_velocity;
+            movement_tunables t = tunables_for(player.character);
+
+            player.velocity_x = player.facing * t.dodge_velocity;
             player.x += player.velocity_x;
 
             if(player.x < min_x)
@@ -253,7 +351,7 @@ namespace game
                 player.x = max_x;
             }
 
-            // A roll hugs the ground it crosses rather than falling mid-roll.
+            // A roll/dash hugs the ground it crosses rather than falling mid-way.
             player.y = grounded_y_at(player.x);
             player.velocity_y = 0;
             player.grounded = true;
@@ -261,7 +359,7 @@ namespace game
 
             ++player.action_timer;
 
-            bool can_cancel_to_attack = player.action_timer >= difficulty::player_dodge_iframe_end;
+            bool can_cancel_to_attack = player.action_timer >= t.dodge_iframe_end;
 
             if(can_cancel_to_attack && attack_pressed)
             {
@@ -269,7 +367,7 @@ namespace game
                 return;
             }
 
-            if(player.action_timer >= difficulty::player_dodge_duration_frames)
+            if(player.action_timer >= t.dodge_duration_frames)
             {
                 player.action = action_kind::none;
                 player.velocity_x = 0;
@@ -290,6 +388,19 @@ namespace game
     {
         bool attack_pressed = input.attack_held && ! player.prev_attack_held;
         bool dodge_pressed = input.dodge_held && ! player.prev_dodge_held;
+        bool swap_pressed = input.swap_held && ! player.prev_swap_held;
+
+        if(swap_pressed)
+        {
+            player.character = player.character == character_kind::hunter
+                    ? character_kind::rival : character_kind::hunter;
+
+            // Instant and free, but the two movesets' timings don't line up,
+            // so any in-progress attack/dodge is cut short rather than
+            // continued with the other character's numbers.
+            player.action = action_kind::none;
+            player.combo_step = 0;
+        }
 
         switch(player.action)
         {
@@ -308,34 +419,53 @@ namespace game
             break;
         }
 
+        if(player.action != action_kind::attack)
+        {
+            ++player.combo_reset_timer;
+        }
+
         update_mp_regen(player);
         update_invuln(player);
 
         player.prev_jump_held = input.jump_held;
         player.prev_attack_held = input.attack_held;
         player.prev_dodge_held = input.dodge_held;
+        player.prev_swap_held = input.swap_held;
     }
 
     attack_hitbox get_attack_hitbox(const player_state& player)
     {
         attack_hitbox box{};
 
-        if(player.action == action_kind::attack)
+        if(player.action != action_kind::attack)
         {
-            int active_start = difficulty::player_attack_startup_frames;
-            int active_end = active_start + difficulty::player_attack_active_frames;
+            return box;
+        }
 
-            if(player.action_timer >= active_start && player.action_timer < active_end)
-            {
-                box.active = true;
-                box.x = player.x + (player.facing * difficulty::player_attack_range);
-                box.y = player.y;
-                box.half_width = difficulty::player_attack_hitbox_half_width;
-                box.half_height = difficulty::player_attack_hitbox_half_height;
-            }
+        attack_tunables at = attack_tunables_for(player.character);
+        int active_start = at.startup_frames;
+        int active_end = active_start + at.active_frames;
+
+        if(player.action_timer >= active_start && player.action_timer < active_end)
+        {
+            box.active = true;
+            box.x = player.x + (player.facing * at.range);
+            box.y = player.y;
+            box.half_width = at.hitbox_half_width;
+            box.half_height = at.hitbox_half_height;
         }
 
         return box;
+    }
+
+    int current_attack_power(const player_state& player)
+    {
+        if(player.character == character_kind::rival)
+        {
+            return (player.str * difficulty::rival_damage_percent) / 100;
+        }
+
+        return player.str;
     }
 
     bool player_is_invulnerable(const player_state& player)
@@ -350,18 +480,32 @@ namespace game
             return false;
         }
 
-        return player.action_timer >= difficulty::player_dodge_iframe_start
-                && player.action_timer <= difficulty::player_dodge_iframe_end;
+        movement_tunables t = tunables_for(player.character);
+        return player.action_timer >= t.dodge_iframe_start && player.action_timer <= t.dodge_iframe_end;
     }
 
-    void damage_player(player_state& player, int amount)
+    int apply_defense(int raw_damage, int defense)
+    {
+        int damage = (raw_damage * 100) / (100 + defense);
+
+        if(damage < 1)
+        {
+            damage = 1;
+        }
+
+        return damage;
+    }
+
+    void damage_player(player_state& player, int raw_damage)
     {
         if(player_is_invulnerable(player))
         {
             return;
         }
 
-        player.hp -= amount;
+        int damage = apply_defense(raw_damage, player.def);
+
+        player.hp -= damage;
 
         if(player.hp < 0)
         {
@@ -369,5 +513,23 @@ namespace game
         }
 
         player.invuln_frames = difficulty::player_invuln_frames;
+    }
+
+    void grant_exp(player_state& player, int amount)
+    {
+        player.exp += amount;
+
+        while(player.exp >= difficulty::exp_for_next_level(player.level))
+        {
+            player.exp -= difficulty::exp_for_next_level(player.level);
+            ++player.level;
+
+            player.max_hp += difficulty::player_hp_per_level;
+            player.max_mp += difficulty::player_mp_per_level;
+            player.str += difficulty::player_str_per_level;
+            player.def += difficulty::player_def_per_level;
+            player.intelligence += difficulty::player_int_per_level;
+            player.lck += difficulty::player_lck_per_level;
+        }
     }
 }

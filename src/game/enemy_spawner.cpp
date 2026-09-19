@@ -84,23 +84,34 @@ namespace game
         }
     }
 
-    void apply_attacks_to_enemies(const attack_hitbox& hitbox)
+    void apply_attacks_to_enemies(const attack_hitbox& hitbox, player_state& player)
     {
+        int power = current_attack_power(player);
+
         for(int i = 0; i < skeleton_active_count; ++i)
         {
-            apply_whip_to_enemy(skeletons[i], skeleton_half_width, skeleton_half_height,
-                    difficulty::skeleton_defense, hitbox);
+            if(apply_whip_to_enemy(skeletons[i], skeleton_half_width, skeleton_half_height,
+                    difficulty::skeleton_defense, power, hitbox))
+            {
+                grant_exp(player, difficulty::skeleton_exp_reward);
+            }
         }
 
         for(int i = 0; i < bat_active_count; ++i)
         {
-            apply_whip_to_enemy(bats[i], bat_half_width, bat_half_height, difficulty::bat_defense, hitbox);
+            if(apply_whip_to_enemy(bats[i], bat_half_width, bat_half_height, difficulty::bat_defense, power, hitbox))
+            {
+                grant_exp(player, difficulty::bat_exp_reward);
+            }
         }
 
         for(int i = 0; i < archer_active_count; ++i)
         {
-            apply_whip_to_enemy(archers[i], archer_half_width, archer_half_height,
-                    difficulty::archer_defense, hitbox);
+            if(apply_whip_to_enemy(archers[i], archer_half_width, archer_half_height,
+                    difficulty::archer_defense, power, hitbox))
+            {
+                grant_exp(player, difficulty::archer_exp_reward);
+            }
         }
     }
 

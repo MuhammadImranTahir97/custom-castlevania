@@ -311,6 +311,27 @@ decision, made constantly, is the heart of the combat.
 **LCK is honest.** In CotM it secretly gated card drops, which felt terrible.
 Here it only improves loot and crit, and it is displayed plainly.
 
+### Damage formula
+
+Every hit — player-on-enemy or enemy-on-player — uses the same formula:
+
+```
+damage = attack_power * 100 / (100 + defense)
+damage = max(damage, 1)   // never zero, no matter how high defense gets
+```
+
+`attack_power` is STR for the Hunter, or STR × 60% per hit for the Rival's
+combo (low damage per hit, per section 3). `defense` is the defender's DEF
+(or an enemy's fixed DEF stat from `enemies.md`).
+
+**Percentage-based, not flat subtraction.** An earlier draft used
+`attack_power - defense`, which lets defense fully cancel an attacker whose
+power is close to it — at base stats, the Hunter's starting DEF (10) exactly
+matched the Skeleton's DMG (10), reducing the game's default enemy to 1
+damage per hit from level 1 onward, a gap that only widens as DEF outgrows
+static enemy stats. The percentage formula never fully cancels, so this
+can't happen at any stat value.
+
 ### LCK curve
 
 The stat grows at full rate; the **effect** is capped, not the growth.

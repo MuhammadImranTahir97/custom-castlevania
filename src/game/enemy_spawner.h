@@ -16,7 +16,10 @@ namespace game
     void spawn_room_enemies();
 
     void update_enemies(fixed player_x, fixed player_y);
-    void apply_attacks_to_enemies(const attack_hitbox& hitbox);
+
+    // Applies the player's whip to every active enemy and grants EXP for
+    // any it kills.
+    void apply_attacks_to_enemies(const attack_hitbox& hitbox, player_state& player);
     void apply_enemy_contact_to_player(player_state& player);
 
     // Read-only access for rendering.
