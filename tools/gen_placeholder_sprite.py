@@ -6,6 +6,11 @@ color-space info in the header, and palette index 0 treated as transparent.
 This writes that BMP by hand (stdlib `struct` only) so the tools/ pipeline
 has no extra Python dependencies.
 
+Uses 4bpp (16-color) rather than 8bpp: on real GBA hardware, 8bpp sprites
+all share one global 256-color palette, so two differently-colored 8bpp
+placeholder sprites would collide and render as the same color. 4bpp
+sprites each get their own 16-color palette bank instead.
+
 Usage:
     gen_placeholder_sprite.py <name> <width> <height> <r> <g> <b> [output_dir]
 
@@ -21,23 +26,30 @@ import sys
 def write_bmp(path, width, height, r, g, b):
     # index 0 = transparent (Butano convention), index 1 = the placeholder color.
     palette = [(0, 0, 0, 0), (b, g, r, 0)]
-    while len(palette) < 256:
+    while len(palette) < 16:
         palette.append((0, 0, 0, 0))
 
-    row_size = (width + 3) & ~3
+    bytes_per_row = (width + 1) // 2  # 2 pixels per byte (4 bits each)
+    row_size = (bytes_per_row + 3) & ~3
     pixel_data_size = row_size * height
-    header_size = 14 + 40 + (256 * 4)
+    header_size = 14 + 40 + (16 * 4)
     file_size = header_size + pixel_data_size
 
     file_header = struct.pack('<2sIHHI', b'BM', file_size, 0, 0, header_size)
     info_header = struct.pack(
         '<IiiHHIIiiII',
-        40, width, height, 1, 8, 0, pixel_data_size, 0, 0, 256, 0,
+        40, width, height, 1, 4, 0, pixel_data_size, 0, 0, 16, 0,
     )
     palette_bytes = b''.join(struct.pack('<4B', *entry) for entry in palette)
 
-    row = bytes([1]) * width + bytes(row_size - width)
-    pixel_data = row * height  # bottom-up row order, as BMP requires
+    row = bytearray(row_size)
+    for x in range(width):
+        byte_index = x // 2
+        if x % 2 == 0:
+            row[byte_index] |= 1 << 4
+        else:
+            row[byte_index] |= 1
+    pixel_data = bytes(row) * height  # bottom-up row order, as BMP requires
 
     with open(path, 'wb') as f:
         f.write(file_header)
@@ -48,7 +60,7 @@ def write_bmp(path, width, height, r, g, b):
 
 def write_json(path):
     with open(path, 'w') as f:
-        json.dump({"type": "sprite", "bpp_mode": "bpp_8"}, f, indent=4)
+        json.dump({"type": "sprite", "bpp_mode": "bpp_4"}, f, indent=4)
         f.write('\n')
 
 

@@ -6,9 +6,8 @@ namespace game
 {
     struct input_state
     {
-        bool up = false;
-        bool down = false;
         bool left = false;
         bool right = false;
+        bool jump_held = false;
     };
 }
