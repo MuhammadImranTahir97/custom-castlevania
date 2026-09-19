@@ -62,9 +62,9 @@ Expect to spend a week just tuning numbers here. That is correct.
 
 ## M2 — Is it a game? *(~1 month)*
 
-- [ ] Room loader — rooms as data, not code
-- [ ] 10 rooms, connected, with transitions
-- [ ] Tiled → GBA converter in `tools/`
+- [x] Room loader — rooms as data, not code
+- [ ] 10 rooms, connected, with transitions (2 so far, proving the loader)
+- [x] Tiled → GBA converter in `tools/` (reads an interim JSON schema until Tiled is installed — see `assets/rooms/README.md`)
 - [ ] 3 enemy types (walker, flyer, shooter)
 - [ ] Enemy HP, damage, death
 - [ ] Player HP, damage, i-frames

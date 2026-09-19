@@ -50,7 +50,7 @@ namespace game
         fixed half_height = 0;
     };
 
-    void init_player(player_state& player);
+    void init_player(player_state& player, fixed spawn_x, fixed spawn_y);
     void update_player(player_state& player, const input_state& input);
 
     attack_hitbox get_attack_hitbox(const player_state& player);

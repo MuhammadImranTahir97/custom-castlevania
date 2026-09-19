@@ -5,8 +5,8 @@ TARGET      	:=  cot-hack
 BUILD       	:=  build
 LIBBUTANO   	:=  tools/butano/butano
 PYTHON      	:=  python
-SOURCES     	:=  src/game src/platform
-INCLUDES    	:=  src/game src/platform
+SOURCES     	:=  src/game src/platform generated/src
+INCLUDES    	:=  src/game src/platform generated/include
 DATA        	:=
 GRAPHICS    	:=  assets/sprites
 AUDIO       	:=
@@ -24,8 +24,8 @@ USERLIBDIRS 	:=
 USERLIBS    	:=
 DEFAULTLIBS 	:=
 STACKTRACE		:=
-USERBUILD   	:=
-EXTTOOL     	:=
+USERBUILD   	:=  generated
+EXTTOOL     	:=  @$(PYTHON) -B tools/convert_rooms.py --rooms-dir assets/rooms --build generated
 
 #---------------------------------------------------------------------------------------------------------------------
 # Export absolute butano path:

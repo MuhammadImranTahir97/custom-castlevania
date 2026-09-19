@@ -1,0 +1,15 @@
+{
+    "id": "catacombs_01",
+    "spawn": { "x": -104, "y": 40 },
+    "platforms": [
+        { "x": -120, "y": 48, "width": 240 },
+        { "x": 40, "y": 16, "width": 64 }
+    ],
+    "doors": [
+        {
+            "x": -120, "y": -80, "width": 16, "height": 160,
+            "target_room": "catacombs_00",
+            "target_x": 100, "target_y": 40
+        }
+    ]
+}

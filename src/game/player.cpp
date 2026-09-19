@@ -269,10 +269,12 @@ namespace game
         }
     }
 
-    void init_player(player_state& player)
+    void init_player(player_state& player, fixed spawn_x, fixed spawn_y)
     {
-        player.x = 0;
-        player.y = grounded_y_at(player.x);
+        player.x = spawn_x;
+        player.y = spawn_y;
+        player.velocity_x = 0;
+        player.velocity_y = 0;
         player.grounded = true;
     }
 

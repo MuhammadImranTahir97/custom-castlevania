@@ -3,5 +3,6 @@
 *.zip
 *.elf
 build/
+generated/
 tools/butano/
 tools/_installers/
