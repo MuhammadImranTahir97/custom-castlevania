@@ -1,14 +1,18 @@
 #pragma once
 
+#include "difficulty.h"
 #include "fixed.h"
 #include "player.h"
 
 namespace game
 {
-    constexpr int skeleton_half_width = 8;
-    constexpr int skeleton_half_height = 8;
+    // Both the bone and the arrow render as 8x8 placeholder sprites.
+    constexpr int projectile_half_width = 4;
+    constexpr int projectile_half_height = 4;
 
-    struct bone_projectile
+    // A thrown/arcing projectile. Shared by the skeleton's bone and the
+    // archer's arrow — same physics (gravity, lifetime), different tuning.
+    struct arc_projectile
     {
         bool active = false;
         fixed x = 0;
@@ -17,6 +21,85 @@ namespace game
         fixed velocity_y = 0;
         int lifetime_frames = 0;
     };
+
+    void launch_arc_projectile(arc_projectile& proj, fixed x, fixed y, fixed velocity_x, fixed velocity_y);
+    void update_arc_projectile(arc_projectile& proj, fixed gravity, int lifetime_limit);
+
+    // Applies the player's whip hitbox to any enemy with .x, .y, .hp, .alive
+    // and .prev_attack_active fields, once per swing.
+    template<typename EnemyState>
+    void apply_whip_to_enemy(EnemyState& enemy, int half_width, int half_height, int defense,
+            const attack_hitbox& hitbox)
+    {
+        bool attack_just_started = hitbox.active && ! enemy.prev_attack_active;
+        enemy.prev_attack_active = hitbox.active;
+
+        if(! enemy.alive || ! attack_just_started)
+        {
+            return;
+        }
+
+        fixed half_w = to_fixed(half_width);
+        fixed half_h = to_fixed(half_height);
+
+        bool overlap_x = (hitbox.x - hitbox.half_width) < (enemy.x + half_w)
+                && (hitbox.x + hitbox.half_width) > (enemy.x - half_w);
+        bool overlap_y = (hitbox.y - hitbox.half_height) < (enemy.y + half_h)
+                && (hitbox.y + hitbox.half_height) > (enemy.y - half_h);
+
+        if(overlap_x && overlap_y)
+        {
+            int damage = difficulty::player_attack_damage - defense;
+
+            if(damage < 1)
+            {
+                damage = 1;
+            }
+
+            enemy.hp -= damage;
+
+            if(enemy.hp <= 0)
+            {
+                enemy.hp = 0;
+                enemy.alive = false;
+            }
+        }
+    }
+
+    // Damages the player on contact with any alive enemy with .x, .y fields.
+    template<typename EnemyState>
+    void apply_enemy_contact(const EnemyState& enemy, int half_width, int half_height, int damage,
+            player_state& player)
+    {
+        if(! enemy.alive)
+        {
+            return;
+        }
+
+        fixed half_w = to_fixed(half_width);
+        fixed half_h = to_fixed(half_height);
+        fixed player_half_w = to_fixed(player_half_width);
+        fixed player_half_h = to_fixed(player_half_height);
+
+        bool overlap_x = (enemy.x - half_w) < (player.x + player_half_w)
+                && (enemy.x + half_w) > (player.x - player_half_w);
+        bool overlap_y = (enemy.y - half_h) < (player.y + player_half_h)
+                && (enemy.y + half_h) > (player.y - player_half_h);
+
+        if(overlap_x && overlap_y)
+        {
+            damage_player(player, damage);
+        }
+    }
+
+    // Damages the player on contact with an active projectile, consuming it.
+    void apply_projectile_contact(arc_projectile& proj, int half_width, int half_height, int damage,
+            player_state& player);
+
+    // --- Skeleton — walker (enemies.md) ---
+
+    constexpr int skeleton_half_width = 8;
+    constexpr int skeleton_half_height = 8;
 
     struct skeleton_state
     {
@@ -27,12 +110,49 @@ namespace game
         bool alive = true;
         int throw_timer = 0;
         bool prev_attack_active = false;
-        bone_projectile bone;
+        arc_projectile bone;
     };
 
     void init_skeleton(skeleton_state& skeleton, fixed spawn_x);
     void update_skeleton(skeleton_state& skeleton);
 
-    // Applies the player's whip hitbox to the skeleton, once per swing.
-    void apply_attack_to_skeleton(skeleton_state& skeleton, const attack_hitbox& hitbox);
+    // --- Bat — flyer (enemies.md) ---
+
+    constexpr int bat_half_width = 8;
+    constexpr int bat_half_height = 8;
+
+    struct bat_state
+    {
+        fixed x = 0;
+        fixed y = 0;
+        int facing = -1;
+        int hp = 0;
+        bool alive = true;
+        bool prev_attack_active = false;
+        bool triggered = false; // idles until the player is in range, then swoops permanently
+        int swoop_timer = 0;    // drives the erratic wiggle
+    };
+
+    void init_bat(bat_state& bat, fixed spawn_x, fixed spawn_y);
+    void update_bat(bat_state& bat, fixed player_x, fixed player_y);
+
+    // --- Skeleton Archer — shooter (enemies.md) ---
+
+    constexpr int archer_half_width = 8;
+    constexpr int archer_half_height = 8;
+
+    struct archer_state
+    {
+        fixed x = 0;
+        fixed y = 0;
+        int facing = -1;
+        int hp = 0;
+        bool alive = true;
+        bool prev_attack_active = false;
+        int shoot_timer = 0;
+        arc_projectile arrow;
+    };
+
+    void init_archer(archer_state& archer, fixed spawn_x);
+    void update_archer(archer_state& archer, fixed player_x);
 }

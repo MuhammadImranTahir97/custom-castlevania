@@ -8,8 +8,12 @@
 #include "bn_sprite_items_hitbox.h"
 #include "bn_sprite_items_skeleton.h"
 #include "bn_sprite_items_bone.h"
+#include "bn_sprite_items_bat.h"
+#include "bn_sprite_items_archer.h"
+#include "bn_sprite_items_arrow.h"
 
 #include "enemy.h"
+#include "enemy_spawner.h"
 #include "fixed.h"
 #include "input.h"
 #include "level.h"
@@ -18,10 +22,6 @@
 
 namespace
 {
-    // The skeleton isn't part of the room data yet (per-room enemy lists are
-    // a later step) — it's hardcoded to this one room until then.
-    constexpr int skeleton_room_index = 0;
-
     // Placeholder-only room renderer: any platform 64px wide or narrower is
     // drawn as the single ledge tile; anything wider is sliced into 64px
     // ground tiles (up to 4). Real tile-based room art replaces this later
@@ -61,6 +61,80 @@ namespace
             }
         }
     }
+
+    void render_skeletons(bn::sprite_ptr skeleton_sprites[], bn::sprite_ptr bone_sprites[])
+    {
+        int count = game::active_skeleton_count();
+
+        for(int i = 0; i < game::max_enemies_per_type; ++i)
+        {
+            bool active = i < count;
+            bool alive = active && game::active_skeleton(i).alive;
+            skeleton_sprites[i].set_visible(alive);
+
+            if(alive)
+            {
+                const game::skeleton_state& s = game::active_skeleton(i);
+                skeleton_sprites[i].set_position(game::to_pixels(s.x), game::to_pixels(s.y));
+                skeleton_sprites[i].set_horizontal_flip(s.facing < 0);
+            }
+
+            bool bone_active = active && game::active_skeleton(i).bone.active;
+            bone_sprites[i].set_visible(bone_active);
+
+            if(bone_active)
+            {
+                const game::arc_projectile& bone = game::active_skeleton(i).bone;
+                bone_sprites[i].set_position(game::to_pixels(bone.x), game::to_pixels(bone.y));
+            }
+        }
+    }
+
+    void render_bats(bn::sprite_ptr bat_sprites[])
+    {
+        int count = game::active_bat_count();
+
+        for(int i = 0; i < game::max_enemies_per_type; ++i)
+        {
+            bool alive = i < count && game::active_bat(i).alive;
+            bat_sprites[i].set_visible(alive);
+
+            if(alive)
+            {
+                const game::bat_state& b = game::active_bat(i);
+                bat_sprites[i].set_position(game::to_pixels(b.x), game::to_pixels(b.y));
+                bat_sprites[i].set_horizontal_flip(b.facing < 0);
+            }
+        }
+    }
+
+    void render_archers(bn::sprite_ptr archer_sprites[], bn::sprite_ptr arrow_sprites[])
+    {
+        int count = game::active_archer_count();
+
+        for(int i = 0; i < game::max_enemies_per_type; ++i)
+        {
+            bool active = i < count;
+            bool alive = active && game::active_archer(i).alive;
+            archer_sprites[i].set_visible(alive);
+
+            if(alive)
+            {
+                const game::archer_state& a = game::active_archer(i);
+                archer_sprites[i].set_position(game::to_pixels(a.x), game::to_pixels(a.y));
+                archer_sprites[i].set_horizontal_flip(a.facing < 0);
+            }
+
+            bool arrow_active = active && game::active_archer(i).arrow.active;
+            arrow_sprites[i].set_visible(arrow_active);
+
+            if(arrow_active)
+            {
+                const game::arc_projectile& arrow = game::active_archer(i).arrow;
+                arrow_sprites[i].set_position(game::to_pixels(arrow.x), game::to_pixels(arrow.y));
+            }
+        }
+    }
 }
 
 int main()
@@ -69,7 +143,7 @@ int main()
 
     bn::sprite_ptr player_sprite = bn::sprite_items::player.create_sprite(0, 0);
 
-    // Room geometry is data-driven (assets/rooms/*.json, see src/game/level.cpp)
+    // Room geometry is data-driven (assets/rooms/*.tmj, see src/game/level.cpp)
     // but every room reuses the same handful of placeholder tile sprites.
     bn::sprite_ptr ground_sprite_0 = bn::sprite_items::ground.create_sprite(0, 0);
     bn::sprite_ptr ground_sprite_1 = bn::sprite_items::ground.create_sprite(0, 0);
@@ -81,17 +155,35 @@ int main()
     bn::sprite_ptr hitbox_sprite = bn::sprite_items::hitbox.create_sprite(0, 0);
     hitbox_sprite.set_visible(false);
 
-    bn::sprite_ptr skeleton_sprite = bn::sprite_items::skeleton.create_sprite(0, 0);
-    bn::sprite_ptr bone_sprite = bn::sprite_items::bone.create_sprite(0, 0);
-    bone_sprite.set_visible(false);
+    // Fixed sprite pools, one per game::max_enemies_per_type slot per type.
+    bn::sprite_ptr skeleton_sprites[game::max_enemies_per_type] = {
+        bn::sprite_items::skeleton.create_sprite(0, 0), bn::sprite_items::skeleton.create_sprite(0, 0),
+    };
+    bn::sprite_ptr bone_sprites[game::max_enemies_per_type] = {
+        bn::sprite_items::bone.create_sprite(0, 0), bn::sprite_items::bone.create_sprite(0, 0),
+    };
+    bn::sprite_ptr bat_sprites[game::max_enemies_per_type] = {
+        bn::sprite_items::bat.create_sprite(0, 0), bn::sprite_items::bat.create_sprite(0, 0),
+    };
+    bn::sprite_ptr archer_sprites[game::max_enemies_per_type] = {
+        bn::sprite_items::archer.create_sprite(0, 0), bn::sprite_items::archer.create_sprite(0, 0),
+    };
+    bn::sprite_ptr arrow_sprites[game::max_enemies_per_type] = {
+        bn::sprite_items::arrow.create_sprite(0, 0), bn::sprite_items::arrow.create_sprite(0, 0),
+    };
+
+    for(bn::sprite_ptr& s : skeleton_sprites) { s.set_visible(false); }
+    for(bn::sprite_ptr& s : bone_sprites) { s.set_visible(false); }
+    for(bn::sprite_ptr& s : bat_sprites) { s.set_visible(false); }
+    for(bn::sprite_ptr& s : archer_sprites) { s.set_visible(false); }
+    for(bn::sprite_ptr& s : arrow_sprites) { s.set_visible(false); }
 
     game::level::spawn_point spawn = game::level::load_room(0);
 
     game::player_state player;
     game::init_player(player, spawn.x, spawn.y);
 
-    game::skeleton_state skeleton;
-    game::init_skeleton(skeleton, game::to_fixed(-16)); // patrols the ledge, offset from player spawn
+    game::spawn_room_enemies();
 
     int last_drawn_room = -1;
 
@@ -112,22 +204,15 @@ int main()
         if(current_room != last_drawn_room)
         {
             draw_room(ground_tiles, ledge_sprite);
+            game::spawn_room_enemies();
             last_drawn_room = current_room;
         }
 
-        bool skeleton_room_active = current_room == skeleton_room_index;
-
-        if(skeleton_room_active)
-        {
-            game::update_skeleton(skeleton);
-        }
+        game::update_enemies(player.x, player.y);
 
         game::attack_hitbox hitbox = game::get_attack_hitbox(player);
-
-        if(skeleton_room_active)
-        {
-            game::apply_attack_to_skeleton(skeleton, hitbox);
-        }
+        game::apply_attacks_to_enemies(hitbox);
+        game::apply_enemy_contact_to_player(player);
 
         player_sprite.set_position(game::to_pixels(player.x), game::to_pixels(player.y));
         player_sprite.set_horizontal_flip(player.facing < 0);
@@ -139,20 +224,9 @@ int main()
             hitbox_sprite.set_position(game::to_pixels(hitbox.x), game::to_pixels(hitbox.y));
         }
 
-        skeleton_sprite.set_visible(skeleton_room_active && skeleton.alive);
-
-        if(skeleton_room_active && skeleton.alive)
-        {
-            skeleton_sprite.set_position(game::to_pixels(skeleton.x), game::to_pixels(skeleton.y));
-            skeleton_sprite.set_horizontal_flip(skeleton.facing < 0);
-        }
-
-        bone_sprite.set_visible(skeleton_room_active && skeleton.bone.active);
-
-        if(skeleton_room_active && skeleton.bone.active)
-        {
-            bone_sprite.set_position(game::to_pixels(skeleton.bone.x), game::to_pixels(skeleton.bone.y));
-        }
+        render_skeletons(skeleton_sprites, bone_sprites);
+        render_bats(bat_sprites);
+        render_archers(archer_sprites, arrow_sprites);
 
         bn::core::update();
     }

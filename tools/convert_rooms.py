@@ -1,42 +1,114 @@
 #!/usr/bin/env python3
-"""Converts assets/rooms/*.json into GBA-ready C++ room data.
+"""Converts assets/rooms/*.tmj (real Tiled JSON exports) into GBA-ready C++
+room data.
 
 Rooms are data, not code (see CLAUDE.md's data-over-code rule) — this is
 the build-time converter that rule calls for. It is wired into the root
 Makefile's EXTTOOL hook, so it runs automatically before compilation.
 
-This currently reads a small interim JSON schema (documented in
-assets/rooms/README.md), not a real Tiled export — Tiled isn't installed
-yet (see ROADMAP.md's M0 checklist). The schema mirrors what a Tiled
-object layer exports (rectangle objects with x/y/width/height), so
-swapping in real Tiled exports later should only mean changing this
-script, not the room loader or the game logic that uses it.
+Workflow: edit a room's *.tmx in Tiled, then export it to a *.tmj next to
+it (Tiled's File > Export As, or `tiled --export-map room.tmx room.tmj`).
+This script only reads the committed *.tmj files — it does not invoke
+Tiled itself, so the ROM build doesn't require Tiled to be installed.
+
+Room schema (one "objects" object layer per map; see assets/rooms/README.md):
+  - a "kind"=platform rectangle per flat-topped platform
+  - a "kind"=door rectangle with target_room/target_x/target_y properties
+  - a "kind"=spawn point, the room's default spawn position
+  - a "kind"=enemy point per enemy, with an "enemy_type" property
+    (one of: skeleton, bat, archer)
+
+Tiled's coordinates are pixels from the map's top-left corner; the game
+uses Butano's screen-centered convention. This script converts between
+them using the map's own width/height, so it isn't tied to one map size.
 
 Usage:
     convert_rooms.py --rooms-dir assets/rooms --build generated
 """
 import argparse
+import glob
 import json
 import os
 import sys
 
+# Must match the type-index convention documented in src/game/level.h and
+# used by src/game/enemy_spawner.cpp.
+ENEMY_TYPE_IDS = {
+    'skeleton': 0,
+    'bat': 1,
+    'archer': 2,
+}
 
-def load_rooms(rooms_dir):
-    rooms = []
 
-    for name in sorted(os.listdir(rooms_dir)):
-        if not name.endswith('.json'):
+def load_room(path):
+    with open(path, 'r') as f:
+        data = json.load(f)
+
+    half_width = (data['width'] * data['tilewidth']) // 2
+    half_height = (data['height'] * data['tileheight']) // 2
+
+    def to_game_x(tiled_x):
+        return tiled_x - half_width
+
+    def to_game_y(tiled_y):
+        return tiled_y - half_height
+
+    platforms = []
+    doors = []
+    enemies = []
+    spawn = None
+
+    for layer in data.get('layers', []):
+        if layer.get('type') != 'objectgroup':
             continue
 
-        path = os.path.join(rooms_dir, name)
+        for obj in layer.get('objects', []):
+            props = {p['name']: p['value'] for p in obj.get('properties', [])}
+            kind = props.get('kind')
 
-        with open(path, 'r') as f:
-            room = json.load(f)
+            if kind == 'platform':
+                platforms.append({
+                    'x': to_game_x(obj['x']),
+                    'y': to_game_y(obj['y']),
+                    'width': obj['width'],
+                })
+            elif kind == 'door':
+                doors.append({
+                    'x': to_game_x(obj['x']),
+                    'y': to_game_y(obj['y']),
+                    'width': obj['width'],
+                    'height': obj['height'],
+                    'target_room': props['target_room'],
+                    'target_x': to_game_x(props['target_x']),
+                    'target_y': to_game_y(props['target_y']),
+                })
+            elif kind == 'spawn':
+                spawn = {'x': to_game_x(obj['x']), 'y': to_game_y(obj['y'])}
+            elif kind == 'enemy':
+                enemy_type = props['enemy_type']
 
-        room['_source_file'] = name
-        rooms.append(room)
+                if enemy_type not in ENEMY_TYPE_IDS:
+                    raise ValueError(
+                        '%s has an enemy with unknown enemy_type "%s" (expected one of: %s)'
+                        % (path, enemy_type, ', '.join(ENEMY_TYPE_IDS))
+                    )
 
-    return rooms
+                enemies.append({
+                    'type': ENEMY_TYPE_IDS[enemy_type],
+                    'x': to_game_x(obj['x']),
+                    'y': to_game_y(obj['y']),
+                })
+
+    if spawn is None:
+        raise ValueError('%s has no "spawn" point object' % path)
+
+    room_id = os.path.splitext(os.path.basename(path))[0]
+    return {'id': room_id, 'spawn': spawn, 'platforms': platforms, 'doors': doors, 'enemies': enemies}
+
+
+def load_rooms(rooms_dir):
+    paths = sorted(glob.glob(os.path.join(rooms_dir, '*.tmj')))
+    return [load_room(path) for path in paths]
 
 
 def build_index(rooms):
@@ -46,7 +118,7 @@ def build_index(rooms):
         room_id = room['id']
 
         if room_id in index:
-            raise ValueError('duplicate room id "%s" (%s)' % (room_id, room['_source_file']))
+            raise ValueError('duplicate room id "%s"' % room_id)
 
         index[room_id] = i
 
@@ -56,7 +128,7 @@ def build_index(rooms):
 def write_header(path):
     with open(path, 'w') as f:
         f.write('#pragma once\n\n')
-        f.write('// Generated by tools/convert_rooms.py from assets/rooms/*.json.\n')
+        f.write('// Generated by tools/convert_rooms.py from assets/rooms/*.tmj.\n')
         f.write('// Do not edit by hand.\n\n')
         f.write('namespace game::room_data\n{\n')
         f.write('    struct platform_def\n    {\n')
@@ -66,11 +138,15 @@ def write_header(path):
         f.write('        int x;\n        int y;\n        int width;\n        int height;\n')
         f.write('        int target_room;\n        int target_x;\n        int target_y;\n')
         f.write('    };\n\n')
+        f.write('    struct enemy_spawn_def\n    {\n')
+        f.write('        int type;\n        int x;\n        int y;\n')
+        f.write('    };\n\n')
         f.write('    struct room_def\n    {\n')
         f.write('        const char* id;\n')
         f.write('        int spawn_x;\n        int spawn_y;\n')
         f.write('        const platform_def* platforms;\n        int platform_count;\n')
         f.write('        const door_def* doors;\n        int door_count;\n')
+        f.write('        const enemy_spawn_def* enemy_spawns;\n        int enemy_spawn_count;\n')
         f.write('    };\n\n')
         f.write('    extern const room_def rooms[];\n')
         f.write('    extern const int room_count;\n')
@@ -84,13 +160,13 @@ def cpp_string(value):
 def write_source(path, rooms, index):
     with open(path, 'w') as f:
         f.write('#include "room_data.h"\n\n')
-        f.write('// Generated by tools/convert_rooms.py from assets/rooms/*.json.\n')
+        f.write('// Generated by tools/convert_rooms.py from assets/rooms/*.tmj.\n')
         f.write('// Do not edit by hand.\n\n')
         f.write('namespace game::room_data\n{\n')
 
         for i, room in enumerate(rooms):
-            platforms = room.get('platforms', [])
-            doors = room.get('doors', [])
+            platforms = room['platforms']
+            doors = room['doors']
 
             f.write('    static const platform_def platforms_%d[] = {\n' % i)
 
@@ -122,16 +198,29 @@ def write_source(path, rooms, index):
 
             f.write('    };\n\n')
 
+            enemies = room['enemies']
+
+            f.write('    static const enemy_spawn_def enemies_%d[] = {\n' % i)
+
+            for e in enemies:
+                f.write('        { %d, %d, %d },\n' % (e['type'], e['x'], e['y']))
+
+            if not enemies:
+                f.write('        { 0, 0, 0 },\n')
+
+            f.write('    };\n\n')
+
         f.write('    const room_def rooms[] = {\n')
 
         for i, room in enumerate(rooms):
             spawn = room['spawn']
             f.write(
-                '        { %s, %d, %d, platforms_%d, %d, doors_%d, %d },\n'
+                '        { %s, %d, %d, platforms_%d, %d, doors_%d, %d, enemies_%d, %d },\n'
                 % (
                     cpp_string(room['id']), spawn['x'], spawn['y'],
-                    i, len(room.get('platforms', [])),
-                    i, len(room.get('doors', [])),
+                    i, len(room['platforms']),
+                    i, len(room['doors']),
+                    i, len(room['enemies']),
                 )
             )
 

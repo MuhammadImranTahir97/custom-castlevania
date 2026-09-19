@@ -114,6 +114,14 @@ namespace game
             }
         }
 
+        void update_invuln(player_state& player)
+        {
+            if(player.invuln_frames > 0)
+            {
+                --player.invuln_frames;
+            }
+        }
+
         void update_mp_regen(player_state& player)
         {
             if(player.mp_regen_pause_frames > 0)
@@ -301,6 +309,7 @@ namespace game
         }
 
         update_mp_regen(player);
+        update_invuln(player);
 
         player.prev_jump_held = input.jump_held;
         player.prev_attack_held = input.attack_held;
@@ -331,6 +340,11 @@ namespace game
 
     bool player_is_invulnerable(const player_state& player)
     {
+        if(player.invuln_frames > 0)
+        {
+            return true;
+        }
+
         if(player.action != action_kind::dodge || ! player.dodge_has_iframes)
         {
             return false;
@@ -338,5 +352,22 @@ namespace game
 
         return player.action_timer >= difficulty::player_dodge_iframe_start
                 && player.action_timer <= difficulty::player_dodge_iframe_end;
+    }
+
+    void damage_player(player_state& player, int amount)
+    {
+        if(player_is_invulnerable(player))
+        {
+            return;
+        }
+
+        player.hp -= amount;
+
+        if(player.hp < 0)
+        {
+            player.hp = 0;
+        }
+
+        player.invuln_frames = difficulty::player_invuln_frames;
     }
 }

@@ -1,39 +1,55 @@
-# Room JSON schema (interim, pre-Tiled)
+# Rooms: Tiled maps
 
-Tiled isn't installed yet (see `ROADMAP.md`'s M0 checklist), so these files
-are hand-authored JSON rather than real Tiled exports. The shape is kept
-close to a Tiled object layer (rectangle objects with x/y/width/height) on
-purpose: once Tiled is installed, only `tools/convert_rooms.py` should need
-to change, not the room loader or the game logic that uses it.
+Rooms are authored in [Tiled](https://www.mapeditor.org/) as `.tmx` files
+and exported to `.tmj` (Tiled's JSON format). `tools/convert_rooms.py`
+reads the committed `.tmj` files and generates the C++ room data — it
+does not invoke Tiled itself, so building the ROM never requires Tiled
+to be installed. Tiled is only needed for editing rooms.
 
-Coordinates are in the same space as everywhere else in the game: pixels,
-Butano's screen-centered convention (x: -120..120, y: -80..80 for one
-240x160 screen). Rooms are not scrolling — each room is exactly one screen,
-and doors are instant transitions to another room, like classic Zelda/
-Metroid screen transitions.
+## Workflow
 
-```json
-{
-    "id": "unique_room_id",
-    "spawn": { "x": 0, "y": 40 },
-    "platforms": [
-        { "x": -120, "y": 48, "width": 240 }
-    ],
-    "doors": [
-        {
-            "x": 104, "y": -80, "width": 16, "height": 160,
-            "target_room": "other_room_id",
-            "target_x": -104, "target_y": 40
-        }
-    ]
-}
-```
+1. Open the room's `.tmx` in Tiled and edit it.
+2. Export it: **File > Export As...** and save over the matching `.tmj`
+   (same base name, next to the `.tmx`), or from the command line:
+   ```
+   "C:\Program Files\Tiled\tiled.exe" --export-map assets/rooms/<room>.tmx assets/rooms/<room>.tmj
+   ```
+3. Commit both the `.tmx` and the re-exported `.tmj`.
+4. `make` picks up the change automatically (the converter runs on every
+   build via the Makefile's `EXTTOOL` hook).
 
-- `id`: unique string, referenced by other rooms' `doors[].target_room`.
-- `spawn`: where the player starts if this is the first room loaded.
-- `platforms`: flat-topped rectangles. `y` is the top surface.
-- `doors`: trigger rectangles. Touching one switches the active room to
-  `target_room` and places the player at `(target_x, target_y)` in it.
+A room's id is its filename without the extension, e.g. `catacombs_00.tmj`
+is room `catacombs_00`. Ids must be unique — they're how doors reference
+their target room.
 
-Run `tools/convert_rooms.py` to regenerate the C++ data (also runs
-automatically as part of `make`, via the Makefile's `EXTTOOL` hook).
+## Room contents
+
+Each room is a single object layer named `objects`, one screen (240x160)
+in size, containing:
+
+- **Platforms** — rectangles with a custom property `kind` = `platform`.
+  Flat-topped; the rectangle's top edge is the walkable surface.
+- **Doors** — rectangles with `kind` = `door`, plus custom properties
+  `target_room` (string, the room id to switch to), `target_x` and
+  `target_y` (int, where to place the player in that room). Touching a
+  door instantly switches rooms — there's no scrolling camera yet, so
+  rooms are single-screen and transitions are a hard cut, like classic
+  Zelda/Metroid screen transitions.
+- **Spawn** — exactly one point object with `kind` = `spawn`: where the
+  player starts if this is the first room loaded.
+- **Enemies** — point objects with `kind` = `enemy` and an `enemy_type`
+  property (one of: `skeleton`, `bat`, `archer` — see `enemies.md`).
+  Entering a room spawns fresh copies of everything in its enemy list;
+  enemy state (HP, position) isn't preserved when you leave and come
+  back — that's a later, save-system-adjacent concern.
+
+Custom properties are added in Tiled via the Properties panel (the `+`
+button) on a selected object.
+
+Coordinates in Tiled are pixels from the map's top-left corner; the
+converter translates them into the game's screen-centered convention
+(x: -120..120, y: -80..80) using the map's own width/height, so this
+isn't tied to one map size.
+
+Each enemy type currently allows at most `game::max_enemies_per_type`
+(2) active instances per room — see `src/game/enemy_spawner.h`.

@@ -64,10 +64,10 @@ Expect to spend a week just tuning numbers here. That is correct.
 
 - [x] Room loader — rooms as data, not code
 - [ ] 10 rooms, connected, with transitions (2 so far, proving the loader)
-- [x] Tiled → GBA converter in `tools/` (reads an interim JSON schema until Tiled is installed — see `assets/rooms/README.md`)
-- [ ] 3 enemy types (walker, flyer, shooter)
-- [ ] Enemy HP, damage, death
-- [ ] Player HP, damage, i-frames
+- [x] Tiled → GBA converter in `tools/` (reads real Tiled `.tmj` exports — see `assets/rooms/README.md`)
+- [x] 3 enemy types (walker, flyer, shooter) — Skeleton, Bat, Skeleton Archer
+- [x] Enemy HP, damage, death
+- [x] Player HP, damage, i-frames
 - [ ] EXP and level-up
 - [ ] Basic HUD (HP, MP bars)
 - [ ] **The Rival** — second character, instant swap

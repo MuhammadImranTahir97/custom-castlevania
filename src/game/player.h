@@ -33,6 +33,9 @@ namespace game
         int mp_regen_counter = 0;
         int mp_regen_pause_frames = 0;
 
+        int hp = difficulty::player_max_hp;
+        int invuln_frames = 0;
+
         action_kind action = action_kind::none;
         int action_timer = 0;
         bool dodge_has_iframes = false;
@@ -54,5 +57,11 @@ namespace game
     void update_player(player_state& player, const input_state& input);
 
     attack_hitbox get_attack_hitbox(const player_state& player);
+
+    // True while dodge i-frames or post-hit i-frames are active.
     bool player_is_invulnerable(const player_state& player);
+
+    // Reduces HP (floored at 0) and starts i-frames. No-op if already
+    // invulnerable. Does not handle death — that's M3 (Death and respawn).
+    void damage_player(player_state& player, int amount);
 }

@@ -45,10 +45,14 @@ namespace game::difficulty
     // power used against enemies until the real stat block exists.
     constexpr int player_attack_damage = 12;
 
-    // --- M1 step 8: Skeleton enemy (enemies.md) ---
+    // Player HP / i-frames — locked by SPEC.md.
+    constexpr int player_max_hp = 100;
+    constexpr int player_invuln_frames = 40;
+
+    // --- Skeleton enemy (enemies.md) — walker ---
     // Stats locked by enemies.md — do not change without checking there first.
     constexpr int skeleton_max_hp = 18;
-    constexpr int skeleton_damage = 10; // not yet consumed — player HP is M2, not M1
+    constexpr int skeleton_damage = 10;
     constexpr int skeleton_defense = 4;
     constexpr int skeleton_bone_throw_interval_frames = 90;
     constexpr fixed skeleton_speed = (player_run_speed * 4) / 5; // "Speed 0.8" relative to player_run_speed
@@ -59,4 +63,31 @@ namespace game::difficulty
     constexpr fixed skeleton_bone_speed_y = -(fixed_one + fixed_one / 2);   // -1.5 px/frame initial
     constexpr fixed skeleton_bone_gravity = fixed_one / 5;                  // 0.2 px/frame^2
     constexpr int skeleton_bone_lifetime_frames = 50;
+
+    // --- M2 enemies (enemies.md) ---
+
+    // Bat — flyer. Stats locked by enemies.md.
+    constexpr int bat_max_hp = 10;
+    constexpr int bat_damage = 7;
+    constexpr int bat_defense = 1;
+    constexpr fixed bat_trigger_range = to_fixed(80);        // "idles until player within 80px"
+    constexpr fixed bat_speed = (player_run_speed * 12) / 10; // "Speed 1.2"
+    // "Erratic swoop" has no exact spec — first draft: a simple zigzag wiggle.
+    constexpr fixed bat_wiggle_speed = fixed_one / 2;
+    constexpr int bat_wiggle_period_frames = 16;
+
+    // Skeleton Archer — shooter. Stats locked by enemies.md.
+    constexpr int archer_max_hp = 22;
+    constexpr int archer_damage = 14;
+    constexpr int archer_defense = 6;
+    constexpr fixed archer_retreat_range = to_fixed(50); // "backs away if player closes to 50px"
+    constexpr fixed archer_speed = (player_run_speed * 6) / 10; // "Speed 0.6"
+
+    // Arrow arc: enemies.md says "arcing arrows" but gives no interval or
+    // shape — first draft, tune by feel, same pattern as the skeleton's bone.
+    constexpr int archer_shoot_interval_frames = 80;
+    constexpr fixed archer_arrow_speed_x = fixed_one + fixed_one / 2;
+    constexpr fixed archer_arrow_speed_y = -(fixed_one + fixed_one / 2);
+    constexpr fixed archer_arrow_gravity = fixed_one / 5;
+    constexpr int archer_arrow_lifetime_frames = 60;
 }
