@@ -1,0 +1,7 @@
+*.gba
+*.sav
+*.zip
+*.elf
+build/
+tools/butano/
+tools/_installers/
