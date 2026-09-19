@@ -40,4 +40,23 @@ namespace game::difficulty
     // MP economy — locked by SPEC.md.
     constexpr int player_max_mp = 100;
     constexpr int player_mp_regen_frames = 6; // 1 MP every N frames
+
+    // No player STR stat exists yet (that's M2) — first-draft effective attack
+    // power used against enemies until the real stat block exists.
+    constexpr int player_attack_damage = 12;
+
+    // --- M1 step 8: Skeleton enemy (enemies.md) ---
+    // Stats locked by enemies.md — do not change without checking there first.
+    constexpr int skeleton_max_hp = 18;
+    constexpr int skeleton_damage = 10; // not yet consumed — player HP is M2, not M1
+    constexpr int skeleton_defense = 4;
+    constexpr int skeleton_bone_throw_interval_frames = 90;
+    constexpr fixed skeleton_speed = (player_run_speed * 4) / 5; // "Speed 0.8" relative to player_run_speed
+
+    // Bone arc: enemies.md only says "low arc" — first draft, tune by feel,
+    // same as the player's own movement/attack values above.
+    constexpr fixed skeleton_bone_speed_x = fixed_one + fixed_one / 2;      // 1.5 px/frame
+    constexpr fixed skeleton_bone_speed_y = -(fixed_one + fixed_one / 2);   // -1.5 px/frame initial
+    constexpr fixed skeleton_bone_gravity = fixed_one / 5;                  // 0.2 px/frame^2
+    constexpr int skeleton_bone_lifetime_frames = 50;
 }
