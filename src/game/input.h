@@ -9,5 +9,7 @@ namespace game
         bool left = false;
         bool right = false;
         bool jump_held = false;
+        bool attack_held = false;
+        bool dodge_held = false;
     };
 }

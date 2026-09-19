@@ -5,6 +5,7 @@
 #include "bn_sprite_items_player.h"
 #include "bn_sprite_items_ground.h"
 #include "bn_sprite_items_ledge.h"
+#include "bn_sprite_items_hitbox.h"
 
 #include "fixed.h"
 #include "input.h"
@@ -24,6 +25,9 @@ int main()
     bn::sprite_ptr ground_sprite_3 = bn::sprite_items::ground.create_sprite(96, 64);
     bn::sprite_ptr ledge_sprite = bn::sprite_items::ledge.create_sprite(0, 32);
 
+    bn::sprite_ptr hitbox_sprite = bn::sprite_items::hitbox.create_sprite(0, 0);
+    hitbox_sprite.set_visible(false);
+
     game::player_state player;
     game::init_player(player);
 
@@ -33,10 +37,21 @@ int main()
         input.left = bn::keypad::held(bn::keypad::key_type::LEFT);
         input.right = bn::keypad::held(bn::keypad::key_type::RIGHT);
         input.jump_held = bn::keypad::held(bn::keypad::key_type::A);
+        input.attack_held = bn::keypad::held(bn::keypad::key_type::B);
+        input.dodge_held = bn::keypad::held(bn::keypad::key_type::R);
 
         game::update_player(player, input);
 
         player_sprite.set_position(game::to_pixels(player.x), game::to_pixels(player.y));
+        player_sprite.set_horizontal_flip(player.facing < 0);
+
+        game::attack_hitbox hitbox = game::get_attack_hitbox(player);
+        hitbox_sprite.set_visible(hitbox.active);
+
+        if(hitbox.active)
+        {
+            hitbox_sprite.set_position(game::to_pixels(hitbox.x), game::to_pixels(hitbox.y));
+        }
 
         bn::core::update();
     }

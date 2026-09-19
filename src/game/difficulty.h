@@ -18,4 +18,26 @@ namespace game::difficulty
     // Locked by SPEC.md — do not change without checking there first.
     constexpr int player_coyote_frames = 5;
     constexpr int player_input_buffer_frames = 6;
+
+    // --- M1 combat (steps 5-7) ---
+    // Whip attack timing. First draft, like movement above — tune by feel.
+    constexpr int player_attack_startup_frames = 4;
+    constexpr int player_attack_active_frames = 6;
+    constexpr int player_attack_recovery_frames = 10;
+    constexpr fixed player_attack_range = to_fixed(20);          // hitbox offset from player center
+    constexpr fixed player_attack_hitbox_half_width = to_fixed(8);
+    constexpr fixed player_attack_hitbox_half_height = to_fixed(4);
+
+    // Dodge roll — locked by SPEC.md.
+    constexpr int player_dodge_duration_frames = 18;
+    constexpr int player_dodge_iframe_start = 4;
+    constexpr int player_dodge_iframe_end = 14;
+    constexpr int player_dodge_mp_cost = 10;
+    constexpr int player_dodge_regen_pause_frames = 60;
+    constexpr int player_dodge_distance = 40;
+    constexpr fixed player_dodge_velocity = to_fixed(player_dodge_distance) / player_dodge_duration_frames;
+
+    // MP economy — locked by SPEC.md.
+    constexpr int player_max_mp = 100;
+    constexpr int player_mp_regen_frames = 6; // 1 MP every N frames
 }
