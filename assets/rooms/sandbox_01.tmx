@@ -6,31 +6,29 @@
     <property name="kind" value="platform"/>
    </properties>
   </object>
-  <object id="2" name="door_to_catacombs_02" x="224" y="0" width="16" height="160">
+  <object id="2" name="raised_platform" x="160" y="96" width="64" height="32">
+   <properties>
+    <property name="kind" value="platform"/>
+   </properties>
+  </object>
+  <object id="3" name="door_to_sandbox_00" x="0" y="0" width="16" height="160">
    <properties>
     <property name="kind" value="door"/>
-    <property name="target_room" value="catacombs_02"/>
-    <property name="target_x" type="int" value="16"/>
+    <property name="target_room" value="sandbox_00"/>
+    <property name="target_x" type="int" value="220"/>
     <property name="target_y" type="int" value="120"/>
    </properties>
   </object>
-  <object id="3" name="spawn" x="20" y="120">
+  <object id="4" name="spawn" x="16" y="120">
    <properties>
     <property name="kind" value="spawn"/>
    </properties>
    <point/>
   </object>
-  <object id="4" name="zombie_1" x="80" y="120">
+  <object id="5" name="archer" x="60" y="120">
    <properties>
     <property name="kind" value="enemy"/>
-    <property name="enemy_type" value="zombie"/>
-   </properties>
-   <point/>
-  </object>
-  <object id="5" name="zombie_2" x="160" y="120">
-   <properties>
-    <property name="kind" value="enemy"/>
-    <property name="enemy_type" value="zombie"/>
+    <property name="enemy_type" value="archer"/>
    </properties>
    <point/>
   </object>

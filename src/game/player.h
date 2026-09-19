@@ -108,4 +108,8 @@ namespace game
     // raising max_hp/max_mp/str/def/int/lck per level. Multiple level-ups
     // from one grant are handled (rare, but possible at low levels).
     void grant_exp(player_state& player, int amount);
+
+    // Fully restores HP and MP (SPEC.md: what a save room does on entry,
+    // and what a respawn does after death — see src/game/world.cpp).
+    void restore_full(player_state& player);
 }

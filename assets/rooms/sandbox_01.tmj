@@ -26,9 +26,27 @@
                  "y":128
                 }, 
                 {
-                 "height":160,
+                 "height":32,
                  "id":2,
-                 "name":"door_to_catacombs_02",
+                 "name":"raised_platform",
+                 "opacity":1,
+                 "properties":[
+                        {
+                         "name":"kind",
+                         "type":"string",
+                         "value":"platform"
+                        }],
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":64,
+                 "x":160,
+                 "y":96
+                }, 
+                {
+                 "height":160,
+                 "id":3,
+                 "name":"door_to_sandbox_00",
                  "opacity":1,
                  "properties":[
                         {
@@ -39,12 +57,12 @@
                         {
                          "name":"target_room",
                          "type":"string",
-                         "value":"catacombs_02"
+                         "value":"sandbox_00"
                         }, 
                         {
                          "name":"target_x",
                          "type":"int",
-                         "value":16
+                         "value":220
                         }, 
                         {
                          "name":"target_y",
@@ -55,12 +73,12 @@
                  "type":"",
                  "visible":true,
                  "width":16,
-                 "x":224,
+                 "x":0,
                  "y":0
                 }, 
                 {
                  "height":0,
-                 "id":3,
+                 "id":4,
                  "name":"spawn",
                  "opacity":1,
                  "point":true,
@@ -74,44 +92,20 @@
                  "type":"",
                  "visible":true,
                  "width":0,
-                 "x":20,
-                 "y":120
-                }, 
-                {
-                 "height":0,
-                 "id":4,
-                 "name":"zombie_1",
-                 "opacity":1,
-                 "point":true,
-                 "properties":[
-                        {
-                         "name":"enemy_type",
-                         "type":"string",
-                         "value":"zombie"
-                        }, 
-                        {
-                         "name":"kind",
-                         "type":"string",
-                         "value":"enemy"
-                        }],
-                 "rotation":0,
-                 "type":"",
-                 "visible":true,
-                 "width":0,
-                 "x":80,
+                 "x":16,
                  "y":120
                 }, 
                 {
                  "height":0,
                  "id":5,
-                 "name":"zombie_2",
+                 "name":"archer",
                  "opacity":1,
                  "point":true,
                  "properties":[
                         {
                          "name":"enemy_type",
                          "type":"string",
-                         "value":"zombie"
+                         "value":"archer"
                         }, 
                         {
                          "name":"kind",
@@ -122,7 +116,7 @@
                  "type":"",
                  "visible":true,
                  "width":0,
-                 "x":160,
+                 "x":60,
                  "y":120
                 }],
          "opacity":1,

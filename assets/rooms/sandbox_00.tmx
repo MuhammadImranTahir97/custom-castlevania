@@ -11,10 +11,10 @@
     <property name="kind" value="platform"/>
    </properties>
   </object>
-  <object id="3" name="door_to_catacombs_01" x="224" y="0" width="16" height="160">
+  <object id="3" name="door_to_sandbox_01" x="224" y="0" width="16" height="160">
    <properties>
     <property name="kind" value="door"/>
-    <property name="target_room" value="catacombs_01"/>
+    <property name="target_room" value="sandbox_01"/>
     <property name="target_x" type="int" value="16"/>
     <property name="target_y" type="int" value="120"/>
    </properties>

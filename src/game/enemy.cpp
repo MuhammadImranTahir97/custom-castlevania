@@ -248,4 +248,66 @@ namespace game
         update_arc_projectile(archer.arrow, difficulty::archer_arrow_gravity,
                 difficulty::archer_arrow_lifetime_frames);
     }
+
+    // --- Zombie — walker, doesn't turn at ledges ---
+
+    void init_zombie(zombie_state& zombie, fixed spawn_x)
+    {
+        zombie.x = spawn_x;
+        zombie.y = ground_y_for(spawn_x, zombie_half_height);
+        zombie.velocity_y = 0;
+        zombie.facing = -1;
+        zombie.hp = difficulty::zombie_max_hp;
+        zombie.alive = true;
+        zombie.prev_attack_active = false;
+        zombie.falling = false;
+    }
+
+    void update_zombie(zombie_state& zombie)
+    {
+        if(! zombie.alive)
+        {
+            return;
+        }
+
+        if(zombie.falling)
+        {
+            zombie.velocity_y += difficulty::zombie_fall_gravity;
+            zombie.y += zombie.velocity_y;
+
+            fixed fall_limit = to_fixed(level::screen_half_height + 40);
+
+            if(zombie.y > fall_limit)
+            {
+                zombie.alive = false; // gone — into the pit
+            }
+
+            return;
+        }
+
+        fixed next_x = zombie.x + (zombie.facing * difficulty::zombie_speed);
+
+        fixed min_x = to_fixed(-level::screen_half_width + zombie_half_width);
+        fixed max_x = to_fixed(level::screen_half_width - zombie_half_width);
+
+        if(next_x < min_x || next_x > max_x)
+        {
+            // Still turns at walls/screen edges — only ledges are ignored.
+            zombie.facing = -zombie.facing;
+            return;
+        }
+
+        fixed next_ground_y = level::ground_top_y_at(next_x);
+        zombie.x = next_x;
+
+        if(next_ground_y >= level::no_ground_y)
+        {
+            zombie.falling = true;
+            zombie.velocity_y = 0;
+        }
+        else
+        {
+            zombie.y = next_ground_y - to_fixed(zombie_half_height);
+        }
+    }
 }

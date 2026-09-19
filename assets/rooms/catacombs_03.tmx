@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="8" tileheight="8" infinite="0" nextlayerid="2" nextobjectid="4">
+ <properties>
+  <property name="is_save_room" type="bool" value="true"/>
+ </properties>
+ <objectgroup id="1" name="objects">
+  <object id="1" name="floor" x="0" y="128" width="240" height="32">
+   <properties>
+    <property name="kind" value="platform"/>
+   </properties>
+  </object>
+  <object id="2" name="door_to_catacombs_02" x="0" y="0" width="16" height="160">
+   <properties>
+    <property name="kind" value="door"/>
+    <property name="target_room" value="catacombs_02"/>
+    <property name="target_x" type="int" value="220"/>
+    <property name="target_y" type="int" value="120"/>
+   </properties>
+  </object>
+  <object id="3" name="spawn" x="120" y="120">
+   <properties>
+    <property name="kind" value="spawn"/>
+   </properties>
+   <point/>
+  </object>
+ </objectgroup>
+</map>

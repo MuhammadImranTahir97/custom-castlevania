@@ -532,4 +532,10 @@ namespace game
             player.lck += difficulty::player_lck_per_level;
         }
     }
+
+    void restore_full(player_state& player)
+    {
+        player.hp = player.max_hp;
+        player.mp = player.max_mp;
+    }
 }

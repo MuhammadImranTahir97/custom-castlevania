@@ -16,7 +16,11 @@ Room schema (one "objects" object layer per map; see assets/rooms/README.md):
   - a "kind"=door rectangle with target_room/target_x/target_y properties
   - a "kind"=spawn point, the room's default spawn position
   - a "kind"=enemy point per enemy, with an "enemy_type" property
-    (one of: skeleton, bat, archer)
+    (one of: skeleton, bat, archer, zombie)
+
+A room can also have a map-level (not object) custom property
+"is_save_room" (bool): SPEC.md's save rooms, which restore HP/MP fully
+and become the respawn checkpoint on entry (src/game/world.cpp).
 
 Tiled's coordinates are pixels from the map's top-left corner; the game
 uses Butano's screen-centered convention. This script converts between
@@ -37,6 +41,7 @@ ENEMY_TYPE_IDS = {
     'skeleton': 0,
     'bat': 1,
     'archer': 2,
+    'zombie': 3,
 }
 
 
@@ -102,8 +107,14 @@ def load_room(path):
     if spawn is None:
         raise ValueError('%s has no "spawn" point object' % path)
 
+    map_props = {p['name']: p['value'] for p in data.get('properties', [])}
+    is_save_room = bool(map_props.get('is_save_room', False))
+
     room_id = os.path.splitext(os.path.basename(path))[0]
-    return {'id': room_id, 'spawn': spawn, 'platforms': platforms, 'doors': doors, 'enemies': enemies}
+    return {
+        'id': room_id, 'spawn': spawn, 'platforms': platforms, 'doors': doors,
+        'enemies': enemies, 'is_save_room': is_save_room,
+    }
 
 
 def load_rooms(rooms_dir):
@@ -147,6 +158,7 @@ def write_header(path):
         f.write('        const platform_def* platforms;\n        int platform_count;\n')
         f.write('        const door_def* doors;\n        int door_count;\n')
         f.write('        const enemy_spawn_def* enemy_spawns;\n        int enemy_spawn_count;\n')
+        f.write('        int is_save_room;\n')
         f.write('    };\n\n')
         f.write('    extern const room_def rooms[];\n')
         f.write('    extern const int room_count;\n')
@@ -215,12 +227,13 @@ def write_source(path, rooms, index):
         for i, room in enumerate(rooms):
             spawn = room['spawn']
             f.write(
-                '        { %s, %d, %d, platforms_%d, %d, doors_%d, %d, enemies_%d, %d },\n'
+                '        { %s, %d, %d, platforms_%d, %d, doors_%d, %d, enemies_%d, %d, %d },\n'
                 % (
                     cpp_string(room['id']), spawn['x'], spawn['y'],
                     i, len(room['platforms']),
                     i, len(room['doors']),
                     i, len(room['enemies']),
+                    1 if room['is_save_room'] else 0,
                 )
             )
 

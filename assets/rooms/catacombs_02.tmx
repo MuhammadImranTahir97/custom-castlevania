@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="8" tileheight="8" infinite="0" nextlayerid="2" nextobjectid="10">
+ <objectgroup id="1" name="objects">
+  <object id="1" name="floor_left" x="0" y="128" width="120" height="32">
+   <properties>
+    <property name="kind" value="platform"/>
+   </properties>
+  </object>
+  <object id="2" name="floor_right" x="160" y="128" width="80" height="32">
+   <properties>
+    <property name="kind" value="platform"/>
+   </properties>
+  </object>
+  <object id="3" name="door_to_catacombs_01" x="0" y="0" width="16" height="160">
+   <properties>
+    <property name="kind" value="door"/>
+    <property name="target_room" value="catacombs_01"/>
+    <property name="target_x" type="int" value="220"/>
+    <property name="target_y" type="int" value="120"/>
+   </properties>
+  </object>
+  <object id="4" name="door_to_catacombs_03" x="224" y="0" width="16" height="160">
+   <properties>
+    <property name="kind" value="door"/>
+    <property name="target_room" value="catacombs_03"/>
+    <property name="target_x" type="int" value="20"/>
+    <property name="target_y" type="int" value="120"/>
+   </properties>
+  </object>
+  <object id="5" name="spawn" x="20" y="120">
+   <properties>
+    <property name="kind" value="spawn"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="6" name="zombie_1" x="40" y="120">
+   <properties>
+    <property name="kind" value="enemy"/>
+    <property name="enemy_type" value="zombie"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="7" name="zombie_2" x="80" y="120">
+   <properties>
+    <property name="kind" value="enemy"/>
+    <property name="enemy_type" value="zombie"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="8" name="zombie_3" x="190" y="120">
+   <properties>
+    <property name="kind" value="enemy"/>
+    <property name="enemy_type" value="zombie"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="9" name="skeleton_1" x="210" y="120">
+   <properties>
+    <property name="kind" value="enemy"/>
+    <property name="enemy_type" value="skeleton"/>
+   </properties>
+   <point/>
+  </object>
+ </objectgroup>
+</map>

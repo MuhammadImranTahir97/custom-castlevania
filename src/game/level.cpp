@@ -6,8 +6,6 @@ namespace game::level
 {
     namespace
     {
-        constexpr fixed no_ground_y = to_fixed(10000);
-
         int active_room_index = 0;
 
         const room_data::room_def& active_room()
@@ -27,6 +25,17 @@ namespace game::level
     int current_room_index()
     {
         return active_room_index;
+    }
+
+    bool current_room_is_save_room()
+    {
+        return active_room().is_save_room != 0;
+    }
+
+    spawn_point current_room_spawn_point()
+    {
+        const room_data::room_def& room = active_room();
+        return { to_fixed(room.spawn_x), to_fixed(room.spawn_y) };
     }
 
     int room_platform_count()

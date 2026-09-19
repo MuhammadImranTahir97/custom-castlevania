@@ -84,16 +84,17 @@ better? If one dominates, fix the balance now — it only gets harder later.
 
 ## M3 — Is it worth finishing? *(~2 months)*
 
-- [ ] One complete area: **Catacombs**, all 18 rooms
-- [ ] 6 enemy types placed and balanced
+- [ ] One complete area: **Catacombs**, all 18 rooms (3 of 18 so far: catacombs_01–03)
+- [ ] 6 enemy types placed and balanced (4 of 6: Skeleton, Bat, Skeleton Archer, Zombie)
 - [ ] **First boss** with real attack patterns and phases
-- [ ] Save system (SRAM, 3 slots)
-- [ ] Save rooms restoring HP/MP
+- [ ] Save system (SRAM, 3 slots) — save *rooms* work (below); persisting to the
+      cartridge across power-off is still open
+- [x] Save rooms restoring HP/MP
 - [ ] Pause menu — all 5 tabs
 - [ ] Map screen with sealed-door markers
 - [ ] **Arcana working** — 2 Action × 3 Attribute cards (6 combos)
 - [ ] First relic (Dash Boots) and one real gate it opens
-- [ ] Death and respawn
+- [x] Death and respawn
 
 ### 🔴 CHECKPOINT — the honest one
 

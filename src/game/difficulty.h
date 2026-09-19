@@ -80,6 +80,15 @@ namespace game::difficulty
     constexpr fixed skeleton_bone_gravity = fixed_one / 5;                  // 0.2 px/frame^2
     constexpr int skeleton_bone_lifetime_frames = 50;
 
+    // --- Zombie enemy (enemies.md) — walker, doesn't turn at ledges ---
+    // Stats locked by enemies.md — do not change without checking there first.
+    constexpr int zombie_max_hp = 20;
+    constexpr int zombie_damage = 8;
+    constexpr int zombie_defense = 2;
+    constexpr int zombie_exp_reward = 6;
+    constexpr fixed zombie_speed = (player_run_speed * 4) / 10; // "Speed 0.4"
+    constexpr fixed zombie_fall_gravity = player_gravity;       // reuses the player's fall physics
+
     // --- M2 enemies (enemies.md) ---
 
     // Bat — flyer. Stats locked by enemies.md.

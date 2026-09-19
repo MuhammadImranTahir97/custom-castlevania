@@ -14,6 +14,8 @@
 #include "bn_sprite_items_arrow.h"
 #include "bn_sprite_items_hud_hp.h"
 #include "bn_sprite_items_hud_mp.h"
+#include "bn_sprite_items_zombie.h"
+#include "bn_sprite_items_save_point.h"
 
 #include "enemy.h"
 #include "enemy_spawner.h"
@@ -141,6 +143,24 @@ namespace
         }
     }
 
+    void render_zombies(bn::sprite_ptr zombie_sprites[])
+    {
+        int count = game::active_zombie_count();
+
+        for(int i = 0; i < game::max_enemies_per_type; ++i)
+        {
+            bool alive = i < count && game::active_zombie(i).alive;
+            zombie_sprites[i].set_visible(alive);
+
+            if(alive)
+            {
+                const game::zombie_state& z = game::active_zombie(i);
+                zombie_sprites[i].set_position(game::to_pixels(z.x), game::to_pixels(z.y));
+                zombie_sprites[i].set_horizontal_flip(z.facing < 0);
+            }
+        }
+    }
+
     // Basic HUD: a row of segments per bar, lit left-to-right by percentage.
     // Real bars (per SPEC.md's mockup) come with real art later.
     void render_hud(bn::sprite_ptr hp_sprites[hud_segments], bn::sprite_ptr mp_sprites[hud_segments],
@@ -180,18 +200,27 @@ int main()
     // Fixed sprite pools, one per game::max_enemies_per_type slot per type.
     bn::sprite_ptr skeleton_sprites[game::max_enemies_per_type] = {
         bn::sprite_items::skeleton.create_sprite(0, 0), bn::sprite_items::skeleton.create_sprite(0, 0),
+        bn::sprite_items::skeleton.create_sprite(0, 0), bn::sprite_items::skeleton.create_sprite(0, 0),
     };
     bn::sprite_ptr bone_sprites[game::max_enemies_per_type] = {
+        bn::sprite_items::bone.create_sprite(0, 0), bn::sprite_items::bone.create_sprite(0, 0),
         bn::sprite_items::bone.create_sprite(0, 0), bn::sprite_items::bone.create_sprite(0, 0),
     };
     bn::sprite_ptr bat_sprites[game::max_enemies_per_type] = {
         bn::sprite_items::bat.create_sprite(0, 0), bn::sprite_items::bat.create_sprite(0, 0),
+        bn::sprite_items::bat.create_sprite(0, 0), bn::sprite_items::bat.create_sprite(0, 0),
     };
     bn::sprite_ptr archer_sprites[game::max_enemies_per_type] = {
+        bn::sprite_items::archer.create_sprite(0, 0), bn::sprite_items::archer.create_sprite(0, 0),
         bn::sprite_items::archer.create_sprite(0, 0), bn::sprite_items::archer.create_sprite(0, 0),
     };
     bn::sprite_ptr arrow_sprites[game::max_enemies_per_type] = {
         bn::sprite_items::arrow.create_sprite(0, 0), bn::sprite_items::arrow.create_sprite(0, 0),
+        bn::sprite_items::arrow.create_sprite(0, 0), bn::sprite_items::arrow.create_sprite(0, 0),
+    };
+    bn::sprite_ptr zombie_sprites[game::max_enemies_per_type] = {
+        bn::sprite_items::zombie.create_sprite(0, 0), bn::sprite_items::zombie.create_sprite(0, 0),
+        bn::sprite_items::zombie.create_sprite(0, 0), bn::sprite_items::zombie.create_sprite(0, 0),
     };
 
     for(bn::sprite_ptr& s : skeleton_sprites) { s.set_visible(false); }
@@ -199,6 +228,10 @@ int main()
     for(bn::sprite_ptr& s : bat_sprites) { s.set_visible(false); }
     for(bn::sprite_ptr& s : archer_sprites) { s.set_visible(false); }
     for(bn::sprite_ptr& s : arrow_sprites) { s.set_visible(false); }
+    for(bn::sprite_ptr& s : zombie_sprites) { s.set_visible(false); }
+
+    bn::sprite_ptr save_point_sprite = bn::sprite_items::save_point.create_sprite(0, 0);
+    save_point_sprite.set_visible(false);
 
     // HUD: top-left corner, HP row above MP row, 10 segments of 8px each.
     bn::sprite_ptr hp_hud_sprites[hud_segments] = {
@@ -220,6 +253,7 @@ int main()
 
     game::player_state player;
     game::init_player(player, spawn.x, spawn.y);
+    game::set_checkpoint(0, spawn.x, spawn.y);
 
     game::spawn_room_enemies();
 
@@ -245,6 +279,17 @@ int main()
             draw_room(ground_tiles, ledge_sprite);
             game::spawn_room_enemies();
             last_drawn_room = current_room;
+
+            if(game::level::current_room_is_save_room())
+            {
+                game::level::spawn_point room_spawn = game::level::current_room_spawn_point();
+                save_point_sprite.set_position(game::to_pixels(room_spawn.x), game::to_pixels(room_spawn.y));
+                save_point_sprite.set_visible(true);
+            }
+            else
+            {
+                save_point_sprite.set_visible(false);
+            }
         }
 
         game::update_enemies(player.x, player.y);
@@ -272,6 +317,7 @@ int main()
         render_skeletons(skeleton_sprites, bone_sprites);
         render_bats(bat_sprites);
         render_archers(archer_sprites, arrow_sprites);
+        render_zombies(zombie_sprites);
         render_hud(hp_hud_sprites, mp_hud_sprites, player);
 
         bn::core::update();

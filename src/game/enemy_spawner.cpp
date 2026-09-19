@@ -11,6 +11,7 @@ namespace game
         constexpr int enemy_type_skeleton = 0;
         constexpr int enemy_type_bat = 1;
         constexpr int enemy_type_archer = 2;
+        constexpr int enemy_type_zombie = 3;
 
         skeleton_state skeletons[max_enemies_per_type];
         int skeleton_active_count = 0;
@@ -20,6 +21,9 @@ namespace game
 
         archer_state archers[max_enemies_per_type];
         int archer_active_count = 0;
+
+        zombie_state zombies[max_enemies_per_type];
+        int zombie_active_count = 0;
     }
 
     void spawn_room_enemies()
@@ -27,6 +31,7 @@ namespace game
         skeleton_active_count = 0;
         bat_active_count = 0;
         archer_active_count = 0;
+        zombie_active_count = 0;
 
         int count = level::room_enemy_spawn_count();
 
@@ -60,6 +65,14 @@ namespace game
                 }
                 break;
 
+            case enemy_type_zombie:
+                if(zombie_active_count < max_enemies_per_type)
+                {
+                    init_zombie(zombies[zombie_active_count], to_fixed(spawn.x));
+                    ++zombie_active_count;
+                }
+                break;
+
             default:
                 break;
             }
@@ -81,6 +94,11 @@ namespace game
         for(int i = 0; i < archer_active_count; ++i)
         {
             update_archer(archers[i], player_x);
+        }
+
+        for(int i = 0; i < zombie_active_count; ++i)
+        {
+            update_zombie(zombies[i]);
         }
     }
 
@@ -113,6 +131,15 @@ namespace game
                 grant_exp(player, difficulty::archer_exp_reward);
             }
         }
+
+        for(int i = 0; i < zombie_active_count; ++i)
+        {
+            if(apply_whip_to_enemy(zombies[i], zombie_half_width, zombie_half_height,
+                    difficulty::zombie_defense, power, hitbox))
+            {
+                grant_exp(player, difficulty::zombie_exp_reward);
+            }
+        }
     }
 
     void apply_enemy_contact_to_player(player_state& player)
@@ -136,6 +163,12 @@ namespace game
                     difficulty::archer_damage, player);
             apply_projectile_contact(archers[i].arrow, projectile_half_width, projectile_half_height,
                     difficulty::archer_damage, player);
+        }
+
+        for(int i = 0; i < zombie_active_count; ++i)
+        {
+            apply_enemy_contact(zombies[i], zombie_half_width, zombie_half_height,
+                    difficulty::zombie_damage, player);
         }
     }
 
@@ -167,5 +200,15 @@ namespace game
     const archer_state& active_archer(int index)
     {
         return archers[index];
+    }
+
+    int active_zombie_count()
+    {
+        return zombie_active_count;
+    }
+
+    const zombie_state& active_zombie(int index)
+    {
+        return zombies[index];
     }
 }

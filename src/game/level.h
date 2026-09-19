@@ -13,6 +13,10 @@ namespace game::level
     constexpr int screen_half_width = 120;
     constexpr int screen_half_height = 80;
 
+    // Returned by ground_top_y_at when x has no platform under it at all
+    // (as opposed to a lower one) — e.g. a walker mid-pit-fall.
+    constexpr fixed no_ground_y = to_fixed(10000);
+
     struct spawn_point
     {
         fixed x;
@@ -35,12 +39,20 @@ namespace game::level
     // Index of the currently active room.
     int current_room_index();
 
+    // The active room's authored spawn point, without switching rooms
+    // (unlike load_room). Used to checkpoint at a save room's own spawn.
+    spawn_point current_room_spawn_point();
+
+    // True if the active room is a save room (SPEC.md: restores HP/MP fully
+    // and becomes the respawn checkpoint on entry — see src/game/world.cpp).
+    bool current_room_is_save_room();
+
     // Read-only access to the active room's platforms, for rendering.
     int room_platform_count();
     platform_view room_platform(int index);
 
     // Plain-pixel view of one enemy spawn in the active room.
-    // type: 0 = skeleton, 1 = bat, 2 = archer (see tools/convert_rooms.py).
+    // type: 0 = skeleton, 1 = bat, 2 = archer, 3 = zombie (see tools/convert_rooms.py).
     struct enemy_spawn_view
     {
         int type;

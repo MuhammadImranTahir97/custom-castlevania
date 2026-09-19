@@ -7,8 +7,9 @@
 namespace game
 {
     // Up to this many of EACH enemy type can be active in a room at once.
-    // Small on purpose — raise it if a room actually needs more.
-    constexpr int max_enemies_per_type = 2;
+    // catacombs_02 needs 3 Zombies at once — raise it further if a future
+    // room needs more.
+    constexpr int max_enemies_per_type = 4;
 
     // Spawns the active room's enemies (from its room data), replacing
     // whatever was previously active. Enemies aren't part of a room-state/
@@ -31,4 +32,7 @@ namespace game
 
     int active_archer_count();
     const archer_state& active_archer(int index);
+
+    int active_zombie_count();
+    const zombie_state& active_zombie(int index);
 }

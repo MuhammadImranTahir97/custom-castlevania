@@ -154,4 +154,24 @@ namespace game
 
     void init_archer(archer_state& archer, fixed spawn_x);
     void update_archer(archer_state& archer, fixed player_x);
+
+    // --- Zombie — walker, doesn't turn at ledges (enemies.md) ---
+
+    constexpr int zombie_half_width = 8;
+    constexpr int zombie_half_height = 8;
+
+    struct zombie_state
+    {
+        fixed x = 0;
+        fixed y = 0;
+        fixed velocity_y = 0;
+        int facing = -1;
+        int hp = 0;
+        bool alive = true;
+        bool prev_attack_active = false;
+        bool falling = false; // walked off a ledge — unlike the Skeleton, it doesn't turn around
+    };
+
+    void init_zombie(zombie_state& zombie, fixed spawn_x);
+    void update_zombie(zombie_state& zombie);
 }
