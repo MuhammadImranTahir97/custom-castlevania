@@ -58,7 +58,7 @@
                  "type":"",
                  "visible":true,
                  "width":48,
-                 "x":72,
+                 "x":36,
                  "y":224
                 }, 
                 {
@@ -76,7 +76,7 @@
                  "type":"",
                  "visible":true,
                  "width":48,
-                 "x":24,
+                 "x":16,
                  "y":192
                 }, 
                 {
@@ -94,7 +94,7 @@
                  "type":"",
                  "visible":true,
                  "width":48,
-                 "x":80,
+                 "x":36,
                  "y":160
                 }, 
                 {
@@ -112,7 +112,7 @@
                  "type":"",
                  "visible":true,
                  "width":48,
-                 "x":32,
+                 "x":16,
                  "y":128
                 }, 
                 {
@@ -130,7 +130,7 @@
                  "type":"",
                  "visible":true,
                  "width":48,
-                 "x":88,
+                 "x":36,
                  "y":96
                 }, 
                 {
@@ -148,7 +148,7 @@
                  "type":"",
                  "visible":true,
                  "width":48,
-                 "x":40,
+                 "x":16,
                  "y":64
                 }, 
                 {
@@ -412,7 +412,7 @@
                          "name":"enemy_type",
                          "type":"string",
                          "value":"fleaman"
-                        }, 
+                        },
                         {
                          "name":"kind",
                          "type":"string",
@@ -422,7 +422,7 @@
                  "type":"",
                  "visible":true,
                  "width":0,
-                 "x":100,
+                 "x":60,
                  "y":152
                 }],
          "opacity":1,

@@ -116,6 +116,19 @@ Linear spine with locked side-rooms in every area to return to later.
 6. **Character gates are marked.** A room needing a specific character
    shows a visual hint. ~8 rooms total.
 
+7. **Rival-only vertical gaps are a design tool for after the Rival joins,
+   never before.** The Rival's higher/floatier jump (SPEC.md section 3)
+   covers more horizontal distance per unit of climb than the Hunter's —
+   useful for deliberately gating a gap behind the Rival specifically once
+   she's playable (area 9 onward — see the boss list's "becomes playable").
+   Before that point, every vertical gap in every room must be climbable
+   on the Hunter's jump alone, full stop, because there is no other option
+   yet. This bit Catacombs once already (area 2's climbing shaft in
+   catacombs_05 was originally spaced for a jump distance only the Rival
+   could make, which is exactly backwards this early) — check new gap
+   spacing against the Hunter's actual jump arc, not just "does it look
+   climbable," before treating a room as done.
+
 ---
 
 # AREA 2 — CATACOMBS *(18 rooms)*

@@ -11,32 +11,32 @@
     <property name="kind" value="platform"/>
    </properties>
   </object>
-  <object id="3" name="platform_b" x="72" y="224" width="48" height="16">
+  <object id="3" name="platform_b" x="36" y="224" width="48" height="16">
    <properties>
     <property name="kind" value="platform"/>
    </properties>
   </object>
-  <object id="4" name="platform_c" x="24" y="192" width="48" height="16">
+  <object id="4" name="platform_c" x="16" y="192" width="48" height="16">
    <properties>
     <property name="kind" value="platform"/>
    </properties>
   </object>
-  <object id="5" name="platform_d" x="80" y="160" width="48" height="16">
+  <object id="5" name="platform_d" x="36" y="160" width="48" height="16">
    <properties>
     <property name="kind" value="platform"/>
    </properties>
   </object>
-  <object id="6" name="platform_e" x="32" y="128" width="48" height="16">
+  <object id="6" name="platform_e" x="16" y="128" width="48" height="16">
    <properties>
     <property name="kind" value="platform"/>
    </properties>
   </object>
-  <object id="7" name="platform_f" x="88" y="96" width="48" height="16">
+  <object id="7" name="platform_f" x="36" y="96" width="48" height="16">
    <properties>
     <property name="kind" value="platform"/>
    </properties>
   </object>
-  <object id="8" name="platform_g" x="40" y="64" width="48" height="16">
+  <object id="8" name="platform_g" x="16" y="64" width="48" height="16">
    <properties>
     <property name="kind" value="platform"/>
    </properties>
@@ -109,7 +109,7 @@
    </properties>
    <point/>
   </object>
-  <object id="19" name="fleaman_2" x="100" y="152">
+  <object id="19" name="fleaman_2" x="60" y="152">
    <properties>
     <property name="kind" value="enemy"/>
     <property name="enemy_type" value="fleaman"/>

@@ -44,7 +44,7 @@
                         {
                          "name":"target_x",
                          "type":"int",
-                         "value":80
+                         "value":40
                         },
                         {
                          "name":"target_y",
