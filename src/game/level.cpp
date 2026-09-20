@@ -14,6 +14,9 @@ namespace game::level
         // caller's hitbox clears it (see try_cross_door). -1 means none.
         int suppressed_door_index = -1;
 
+        // See room_is_sealed.
+        bool room_sealed = false;
+
         const room_data::room_def& active_room()
         {
             return room_data::rooms[active_room_index];
@@ -61,6 +64,7 @@ namespace game::level
     {
         active_room_index = room_index;
         suppressed_door_index = -1;
+        room_sealed = false;
 
         const room_data::room_def& room = active_room();
         spawn_point spawn{ to_fixed(room.spawn_x), to_fixed(room.spawn_y) };
@@ -76,6 +80,16 @@ namespace game::level
     bool current_room_is_save_room()
     {
         return active_room().is_save_room != 0;
+    }
+
+    void set_room_sealed(bool sealed)
+    {
+        room_sealed = sealed;
+    }
+
+    bool room_is_sealed()
+    {
+        return room_sealed;
     }
 
     spawn_point current_room_spawn_point()
@@ -106,7 +120,7 @@ namespace game::level
         return { s.type, s.x, s.y, s.facing };
     }
 
-    fixed ground_top_y_at(fixed x)
+    fixed ground_top_y_at(fixed x, fixed reference_y)
     {
         const room_data::room_def& room = active_room();
         fixed best = no_ground_y;
@@ -118,7 +132,28 @@ namespace game::level
             fixed right = to_fixed(p.x + p.width);
             fixed top = to_fixed(p.y);
 
-            if(x >= left && x <= right && top < best)
+            if(x >= left && x <= right && top >= reference_y && top < best)
+            {
+                best = top;
+            }
+        }
+
+        return best;
+    }
+
+    fixed lowest_overhead_top_at(fixed x, fixed reference_y)
+    {
+        const room_data::room_def& room = active_room();
+        fixed best = no_overhead_y;
+
+        for(int i = 0; i < room.platform_count; ++i)
+        {
+            const room_data::platform_def& p = room.platforms[i];
+            fixed left = to_fixed(p.x);
+            fixed right = to_fixed(p.x + p.width);
+            fixed top = to_fixed(p.y);
+
+            if(x >= left && x <= right && top < reference_y && top > best)
             {
                 best = top;
             }
@@ -144,6 +179,11 @@ namespace game::level
 
     bool try_cross_door(fixed x, fixed y, fixed half_width, fixed half_height, spawn_point& out_spawn)
     {
+        if(room_sealed)
+        {
+            return false;
+        }
+
         const room_data::room_def& room = active_room();
 
         // The suppressed door (if any) stays suppressed only as long as the

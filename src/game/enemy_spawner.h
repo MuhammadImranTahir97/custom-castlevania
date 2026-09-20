@@ -44,4 +44,16 @@ namespace game
 
     int active_medusa_head_count();
     const medusa_head_state& active_medusa_head(int index);
+
+    // At most one Bone Colossus exists at a time (it's a room-authored
+    // boss, not a per-type pool like the enemies above), so this is a
+    // presence check rather than a count.
+    bool bone_colossus_is_active();
+    const bone_colossus_state& active_bone_colossus();
+
+    // Keeps level::room_is_sealed in sync with the Bone Colossus's
+    // alive/dead state (rooms.md: catacombs_17's exits are sealed for the
+    // fight and only open on victory). Call once per frame; a no-op room
+    // without an active boss just keeps the seal off.
+    void sync_boss_room_seal();
 }

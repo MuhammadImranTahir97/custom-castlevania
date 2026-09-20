@@ -186,4 +186,75 @@ namespace game::difficulty
     constexpr fixed medusa_head_wave_amplitude = to_fixed(24);
     constexpr int medusa_head_wave_period_frames = 60;
     constexpr int medusa_head_respawn_cooldown_frames = 45;
+
+    // --- Bone Colossus — first boss (rooms.md: catacombs_17) ---
+    // HP/defense/EXP and the phase HP thresholds are locked by rooms.md.
+    constexpr int bone_colossus_max_hp = 400;
+    constexpr int bone_colossus_defense = 12;
+    constexpr int bone_colossus_exp_reward = 300;
+    constexpr int bone_colossus_phase2_hp_percent = 60; // phase 2 starts below this
+    constexpr int bone_colossus_phase3_hp_percent = 25; // phase 3 starts below this
+
+    // Windup frame counts are locked by rooms.md ("30-frame windup",
+    // "20-frame windup") and are enemies.md's boss design rule #1's
+    // 20-frame minimum tell — phase 3's "+25% attack speed" (below) is
+    // deliberately not applied to these, only to recovery/cooldown, so the
+    // tell never shrinks below what the player was taught to read.
+    constexpr int bone_colossus_slam_windup_frames = 30;    // locked
+    constexpr int bone_colossus_slam_active_frames = 10;    // first draft
+    constexpr int bone_colossus_slam_recovery_frames = 20;  // first draft
+    constexpr int bone_colossus_slam_damage = 22;           // first draft
+    constexpr fixed bone_colossus_slam_half_width = to_fixed(28);
+    constexpr fixed bone_colossus_slam_half_height = to_fixed(16);
+
+    // Phase 2's slam becomes a 2-hit combo (rooms.md: "one roll dodges
+    // only the first"). The second hit gets its own full 20-frame windup
+    // — starting only after the first hit's active frames end — rather
+    // than a short follow-up, specifically so a roll timed to the first
+    // hit's tell (18-frame dodge duration) has completely finished by the
+    // time the second hit goes active, forcing a second, separately-timed
+    // dodge rather than one roll covering both.
+    constexpr int bone_colossus_slam2_windup_frames = 20;   // locked (the 20f minimum)
+    constexpr int bone_colossus_slam2_active_frames = 10;   // first draft
+    constexpr int bone_colossus_slam2_recovery_frames = 20; // first draft
+
+    constexpr int bone_colossus_sweep_windup_frames = 20;   // locked
+    constexpr int bone_colossus_sweep_active_frames = 15;   // first draft
+    constexpr int bone_colossus_sweep_recovery_frames = 25; // first draft
+    constexpr int bone_colossus_sweep_damage = 18;          // first draft
+    // Low and wide — "must JUMP not roll" (rooms.md) means jumping has to
+    // physically clear this band; a jump apex clears well above it (see
+    // player_jump_velocity/gravity), while a grounded dodge's height
+    // doesn't change at all, so it can't.
+    constexpr fixed bone_colossus_sweep_half_width = to_fixed(140);
+    constexpr fixed bone_colossus_sweep_half_height = to_fixed(10);
+
+    // Rooms.md's "no unavoidable damage" attacks that also aren't rollable
+    // (sweep and, in phase 3, the rib spread) skip the player's dodge
+    // i-frames entirely rather than the doing the same overlap check other
+    // enemies use — see player::damage_player_unrollable.
+
+    // Phase 3's rib-cage spread: 5 bones fired in a fan with gaps between
+    // them (rooms.md: "must be positioned between them"). Reuses the
+    // Skeleton's arc_projectile/bone visual — same "bone" theming, no new
+    // asset needed.
+    constexpr int bone_colossus_ribs_windup_frames = 20;    // locked
+    constexpr int bone_colossus_ribs_damage = 16;           // first draft
+    constexpr fixed bone_colossus_rib_speed = to_fixed(2);        // first draft
+    constexpr fixed bone_colossus_rib_spread_step = to_fixed(1) / 2; // vertical fan spacing, first draft
+    constexpr fixed bone_colossus_rib_gravity = fixed_one / 6;    // first draft
+    constexpr int bone_colossus_rib_lifetime_frames = 70;         // first draft
+
+    // Idle time between attack decisions (phase 1/2) — not specified,
+    // first draft, tune by feel.
+    constexpr int bone_colossus_decision_cooldown_frames = 50;
+
+    // "Summons 2 Skeletons every 15 seconds" (rooms.md) — locked interval,
+    // GBA runs at 60fps.
+    constexpr int bone_colossus_summon_interval_frames = 15 * 60;
+
+    // Phase 3: "attack speed +25%" (rooms.md) — applied only to the
+    // recovery/cooldown timers above (via *100/125), never to the locked
+    // windup frames, per the comment on those.
+    constexpr int bone_colossus_phase3_speed_percent = 125;
 }

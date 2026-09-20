@@ -63,7 +63,19 @@ namespace
         for(int i = 0; i < game::level::room_platform_count(); ++i)
         {
             game::level::platform_view p = game::level::room_platform(i);
-            int tiles_needed = (p.width_px + 63) / 64; // round up so the platform is fully covered
+
+            // Rounding up here would draw a tile past the platform's actual
+            // (narrower) collision width -- ground that looks solid but
+            // isn't, so walking onto that sliver drops the player through
+            // it. Round down instead: platforms under 64px still get one
+            // tile (there's no smaller placeholder piece to draw), but any
+            // wider platform never shows more ground than it actually has.
+            int tiles_needed = p.width_px / 64;
+
+            if(tiles_needed < 1)
+            {
+                tiles_needed = 1;
+            }
 
             for(int t = 0; t < tiles_needed && tile_active_count < tile_pool_size; ++t, ++tile_active_count)
             {
@@ -247,6 +259,43 @@ namespace
         }
     }
 
+    void render_bone_colossus(bn::sprite_ptr& body_sprite, bn::sprite_ptr& attack_sprite,
+            bn::sprite_ptr rib_sprites[game::bone_colossus_rib_count])
+    {
+        bool active = game::bone_colossus_is_active();
+        bool alive = active && game::active_bone_colossus().alive;
+        body_sprite.set_visible(alive);
+
+        if(alive)
+        {
+            const game::bone_colossus_state& boss = game::active_bone_colossus();
+            set_world_position(body_sprite, boss.x, boss.y);
+            body_sprite.set_horizontal_flip(boss.facing < 0);
+        }
+
+        game::boss_attack_hitbox hitbox = alive
+                ? game::get_bone_colossus_attack_hitbox(game::active_bone_colossus())
+                : game::boss_attack_hitbox{};
+        attack_sprite.set_visible(hitbox.active);
+
+        if(hitbox.active)
+        {
+            set_world_position(attack_sprite, hitbox.x, hitbox.y);
+        }
+
+        for(int i = 0; i < game::bone_colossus_rib_count; ++i)
+        {
+            bool rib_active = active && game::active_bone_colossus().ribs[i].active;
+            rib_sprites[i].set_visible(rib_active);
+
+            if(rib_active)
+            {
+                const game::arc_projectile& rib = game::active_bone_colossus().ribs[i];
+                set_world_position(rib_sprites[i], rib.x, rib.y);
+            }
+        }
+    }
+
     // Basic HUD: a row of segments per bar, lit left-to-right by percentage.
     // Real bars (per SPEC.md's mockup) come with real art later. Fixed to
     // the screen, not the world — no camera offset here.
@@ -338,6 +387,19 @@ int main()
         bn::sprite_items::bat.create_sprite(0, 0), bn::sprite_items::bat.create_sprite(0, 0),
         bn::sprite_items::bat.create_sprite(0, 0), bn::sprite_items::bat.create_sprite(0, 0),
     };
+    // Same palette-budget reasoning as above: the Colossus's body reuses
+    // "skeleton" (thematically the closest fit, and at most one of it is
+    // ever on screen at a time, unlike the other reuses above), its ribs
+    // reuse "bone" (the skeleton's own bone toss, matching "rib-cage" of
+    // bones), and its attack telegraph reuses "hitbox" (the player's own
+    // attack marker).
+    bn::sprite_ptr bone_colossus_sprite = bn::sprite_items::skeleton.create_sprite(0, 0);
+    bn::sprite_ptr bone_colossus_hitbox_sprite = bn::sprite_items::hitbox.create_sprite(0, 0);
+    bn::sprite_ptr bone_colossus_rib_sprites[game::bone_colossus_rib_count] = {
+        bn::sprite_items::bone.create_sprite(0, 0), bn::sprite_items::bone.create_sprite(0, 0),
+        bn::sprite_items::bone.create_sprite(0, 0), bn::sprite_items::bone.create_sprite(0, 0),
+        bn::sprite_items::bone.create_sprite(0, 0),
+    };
 
     for(bn::sprite_ptr& s : skeleton_sprites) { s.set_visible(false); }
     for(bn::sprite_ptr& s : bone_sprites) { s.set_visible(false); }
@@ -349,6 +411,9 @@ int main()
     for(bn::sprite_ptr& s : fireball_sprites) { s.set_visible(false); }
     for(bn::sprite_ptr& s : fleaman_sprites) { s.set_visible(false); }
     for(bn::sprite_ptr& s : medusa_head_sprites) { s.set_visible(false); }
+    bone_colossus_sprite.set_visible(false);
+    bone_colossus_hitbox_sprite.set_visible(false);
+    for(bn::sprite_ptr& s : bone_colossus_rib_sprites) { s.set_visible(false); }
 
     bn::sprite_ptr save_point_sprite = bn::sprite_items::save_point.create_sprite(0, 0);
     save_point_sprite.set_visible(false);
@@ -418,6 +483,7 @@ int main()
         game::attack_hitbox hitbox = game::get_attack_hitbox(player);
         game::apply_attacks_to_enemies(hitbox, player);
         game::apply_enemy_contact_to_player(player);
+        game::sync_boss_room_seal();
 
         bool is_rival = player.character == game::character_kind::rival;
         bn::sprite_ptr& active_sprite = is_rival ? rival_sprite : hunter_sprite;
@@ -449,6 +515,7 @@ int main()
         render_bone_pillars(bone_pillar_sprites, fireball_sprites);
         render_fleamen(fleaman_sprites);
         render_medusa_heads(medusa_head_sprites);
+        render_bone_colossus(bone_colossus_sprite, bone_colossus_hitbox_sprite, bone_colossus_rib_sprites);
         render_hud(hp_hud_sprites, mp_hud_sprites, player);
 
         bn::core::update();

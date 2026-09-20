@@ -15,6 +15,7 @@ namespace game
         constexpr int enemy_type_bone_pillar = 4;
         constexpr int enemy_type_fleaman = 5;
         constexpr int enemy_type_medusa_head = 6;
+        constexpr int enemy_type_bone_colossus = 7;
 
         skeleton_state skeletons[max_enemies_per_type];
         int skeleton_active_count = 0;
@@ -36,6 +37,9 @@ namespace game
 
         medusa_head_state medusa_heads[max_enemies_per_type];
         int medusa_head_active_count = 0;
+
+        bone_colossus_state bone_colossus;
+        bool bone_colossus_active = false;
     }
 
     void spawn_room_enemies()
@@ -47,6 +51,7 @@ namespace game
         bone_pillar_active_count = 0;
         fleaman_active_count = 0;
         medusa_head_active_count = 0;
+        bone_colossus_active = false;
 
         int count = level::room_enemy_spawn_count();
 
@@ -59,7 +64,7 @@ namespace game
             case enemy_type_skeleton:
                 if(skeleton_active_count < max_enemies_per_type)
                 {
-                    init_skeleton(skeletons[skeleton_active_count], to_fixed(spawn.x));
+                    init_skeleton(skeletons[skeleton_active_count], to_fixed(spawn.x), to_fixed(spawn.y));
                     ++skeleton_active_count;
                 }
                 break;
@@ -75,7 +80,7 @@ namespace game
             case enemy_type_archer:
                 if(archer_active_count < max_enemies_per_type)
                 {
-                    init_archer(archers[archer_active_count], to_fixed(spawn.x));
+                    init_archer(archers[archer_active_count], to_fixed(spawn.x), to_fixed(spawn.y));
                     ++archer_active_count;
                 }
                 break;
@@ -83,7 +88,7 @@ namespace game
             case enemy_type_zombie:
                 if(zombie_active_count < max_enemies_per_type)
                 {
-                    init_zombie(zombies[zombie_active_count], to_fixed(spawn.x));
+                    init_zombie(zombies[zombie_active_count], to_fixed(spawn.x), to_fixed(spawn.y));
                     ++zombie_active_count;
                 }
                 break;
@@ -100,7 +105,7 @@ namespace game
             case enemy_type_fleaman:
                 if(fleaman_active_count < max_enemies_per_type)
                 {
-                    init_fleaman(fleamen[fleaman_active_count], to_fixed(spawn.x));
+                    init_fleaman(fleamen[fleaman_active_count], to_fixed(spawn.x), to_fixed(spawn.y));
                     ++fleaman_active_count;
                 }
                 break;
@@ -112,6 +117,11 @@ namespace game
                             to_fixed(spawn.y), spawn.facing);
                     ++medusa_head_active_count;
                 }
+                break;
+
+            case enemy_type_bone_colossus:
+                init_bone_colossus(bone_colossus, to_fixed(spawn.x), to_fixed(spawn.y));
+                bone_colossus_active = true;
                 break;
 
             default:
@@ -155,6 +165,31 @@ namespace game
         for(int i = 0; i < medusa_head_active_count; ++i)
         {
             update_medusa_head(medusa_heads[i]);
+        }
+
+        if(bone_colossus_active)
+        {
+            bool want_summon = update_bone_colossus(bone_colossus, player_x);
+
+            if(want_summon)
+            {
+                // Adds enter from both edges of the wide arena (rooms.md:
+                // "summons 2 Skeletons every 15 seconds") -- exact position
+                // isn't specified, first draft.
+                fixed edge_x = to_fixed(level::room_half_width() - skeleton_half_width - 8);
+
+                if(skeleton_active_count < max_enemies_per_type)
+                {
+                    init_skeleton(skeletons[skeleton_active_count], -edge_x, bone_colossus.y);
+                    ++skeleton_active_count;
+                }
+
+                if(skeleton_active_count < max_enemies_per_type)
+                {
+                    init_skeleton(skeletons[skeleton_active_count], edge_x, bone_colossus.y);
+                    ++skeleton_active_count;
+                }
+            }
         }
     }
 
@@ -227,6 +262,15 @@ namespace game
                 medusa_heads[i].respawn_timer = difficulty::medusa_head_respawn_cooldown_frames;
             }
         }
+
+        if(bone_colossus_active)
+        {
+            if(apply_whip_to_enemy(bone_colossus, bone_colossus_half_width, bone_colossus_half_height,
+                    difficulty::bone_colossus_defense, power, hitbox))
+            {
+                grant_exp(player, difficulty::bone_colossus_exp_reward);
+            }
+        }
     }
 
     void apply_enemy_contact_to_player(player_state& player)
@@ -276,6 +320,15 @@ namespace game
         {
             apply_enemy_contact(medusa_heads[i], medusa_head_half_width, medusa_head_half_height,
                     difficulty::medusa_head_damage, player);
+        }
+
+        // No passive body-contact damage for the Colossus itself (unlike
+        // the enemies above) — enemies.md's boss design rules are built
+        // entirely around telegraphed attacks having a tell, so damage only
+        // comes from its named attacks, not from standing near its body.
+        if(bone_colossus_active)
+        {
+            apply_bone_colossus_attack_to_player(bone_colossus, player);
         }
     }
 
@@ -347,5 +400,20 @@ namespace game
     const medusa_head_state& active_medusa_head(int index)
     {
         return medusa_heads[index];
+    }
+
+    bool bone_colossus_is_active()
+    {
+        return bone_colossus_active;
+    }
+
+    const bone_colossus_state& active_bone_colossus()
+    {
+        return bone_colossus;
+    }
+
+    void sync_boss_room_seal()
+    {
+        level::set_room_sealed(bone_colossus_active && bone_colossus.alive);
     }
 }

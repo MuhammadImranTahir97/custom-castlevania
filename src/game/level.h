@@ -18,6 +18,10 @@ namespace game::level
     // (as opposed to a lower one) — e.g. a walker mid-pit-fall.
     constexpr fixed no_ground_y = to_fixed(10000);
 
+    // Returned by lowest_overhead_top_at when x has nothing above
+    // reference_y at all.
+    constexpr fixed no_overhead_y = to_fixed(-10000);
+
     struct spawn_point
     {
         fixed x;
@@ -48,6 +52,15 @@ namespace game::level
     // True if the active room is a save room (SPEC.md: restores HP/MP fully
     // and becomes the respawn checkpoint on entry — see src/game/world.cpp).
     bool current_room_is_save_room();
+
+    // While true, try_cross_door does nothing in the active room — a boss
+    // arena's exits sealed until the boss is defeated (rooms.md:
+    // catacombs_17 seals its west door during the Bone Colossus fight and
+    // only opens its east door on victory). Reset to false by load_room;
+    // whoever tracks the boss's alive/dead state calls this every frame to
+    // stay in sync (see enemy_spawner.cpp's sync_boss_room_seal).
+    void set_room_sealed(bool sealed);
+    bool room_is_sealed();
 
     // The active room's total world size in pixels, divided by two. A
     // single-screen room has room_half_width() == screen_half_width; a
@@ -87,8 +100,29 @@ namespace game::level
     int room_enemy_spawn_count();
     enemy_spawn_view room_enemy_spawn(int index);
 
-    // Returns the y of the topmost surface under x, in the active room.
-    fixed ground_top_y_at(fixed x);
+    // Returns the y of the closest surface under x that's at or below
+    // reference_y, in the active room — no_ground_y if there isn't one.
+    //
+    // reference_y matters whenever platforms overlap in x at different
+    // heights (e.g. a staggered climbing shaft, or a wide platform sitting
+    // above a row of narrower ones): without it, "the surface under x"
+    // would always mean the single highest platform touching that column,
+    // even if it's high above whoever's asking and was never actually
+    // reached. Passing the asker's own current y excludes anything above
+    // them (not yet reached) and finds the nearest one at or below instead.
+    fixed ground_top_y_at(fixed x, fixed reference_y);
+
+    // Returns the y of the closest surface over x that's strictly above
+    // reference_y (i.e. not yet reached), in the active room —
+    // no_overhead_y if there isn't one.
+    //
+    // This is the wall side of the same overlap problem ground_top_y_at
+    // solves: a platform taller than reference_y is exactly the thing
+    // ground_top_y_at excludes (it isn't "the ground you're on"), but it's
+    // still a real obstacle that should block walking into it rather than
+    // being silently invisible. Comparing this at two x positions tells you
+    // whether moving between them brings a closer obstacle into range.
+    fixed lowest_overhead_top_at(fixed x, fixed reference_y);
 
     // If the (half_width, half_height) box centered on (x, y) overlaps a
     // door in the active room, switches to that door's target room, fills

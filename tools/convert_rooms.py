@@ -16,9 +16,9 @@ Room schema (one "objects" object layer per map; see assets/rooms/README.md):
   - a "kind"=door rectangle with target_room/target_x/target_y properties
   - a "kind"=spawn point, the room's default spawn position
   - a "kind"=enemy point per enemy, with an "enemy_type" property (one
-    of: skeleton, bat, archer, zombie, bone_pillar, fleaman, medusa_head)
-    and an optional int "facing" (-1 or +1, default -1) for enemies that
-    don't decide their own facing dynamically
+    of: skeleton, bat, archer, zombie, bone_pillar, fleaman, medusa_head,
+    bone_colossus) and an optional int "facing" (-1 or +1, default -1) for
+    enemies that don't decide their own facing dynamically
 
 A room can also have a map-level (not object) custom property
 "is_save_room" (bool): SPEC.md's save rooms, which restore HP/MP fully
@@ -49,6 +49,7 @@ ENEMY_TYPE_IDS = {
     'bone_pillar': 4,
     'fleaman': 5,
     'medusa_head': 6,
+    'bone_colossus': 7,
 }
 
 

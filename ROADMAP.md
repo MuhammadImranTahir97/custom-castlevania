@@ -86,7 +86,7 @@ better? If one dominates, fix the balance now — it only gets harder later.
 
 - [x] One complete area: **Catacombs**, all 18 rooms placed and connected (boss AI itself is separate, below)
 - [x] 6 enemy types placed and balanced (Skeleton, Bat, Skeleton Archer, Zombie, Bone Pillar, Fleaman) — Medusa Head also built, past the 6 called for here
-- [ ] **First boss** with real attack patterns and phases
+- [x] **First boss** with real attack patterns and phases
 - [ ] Save system (SRAM, 3 slots) — save *rooms* work (below); persisting to the
       cartridge across power-off is still open
 - [x] Save rooms restoring HP/MP

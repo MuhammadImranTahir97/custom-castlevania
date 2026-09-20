@@ -104,6 +104,14 @@ namespace game
     // that's M3 (Death and respawn).
     void damage_player(player_state& player, int raw_damage);
 
+    // Same as damage_player, but ignores dodge i-frames — only the brief
+    // post-hit invulnerability still blocks it. For "unrollable" attacks
+    // (enemies.md's boss design rule: "at least one attack cannot be
+    // rolled — forces positioning"), where dodging through the hitbox
+    // shouldn't work and only actually moving out of it (e.g. jumping
+    // above a low sweep) should.
+    void damage_player_unrollable(player_state& player, int raw_damage);
+
     // Adds EXP and applies any level-ups (SPEC.md's level^2 * 8 curve),
     // raising max_hp/max_mp/str/def/int/lck per level. Multiple level-ups
     // from one grant are handled (rare, but possible at low levels).

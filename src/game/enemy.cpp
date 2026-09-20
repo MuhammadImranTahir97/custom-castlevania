@@ -61,18 +61,22 @@ namespace game
 
     namespace
     {
-        fixed ground_y_for(fixed x, int half_height)
+        // reference_y is the enemy's own y to check from (see
+        // level::ground_top_y_at) -- typically its current position, so a
+        // platform above it isn't mistaken for the ground it's standing on.
+        fixed ground_y_for(fixed x, int half_height, fixed reference_y)
         {
-            return level::ground_top_y_at(x) - to_fixed(half_height);
+            fixed reference_feet_y = reference_y + to_fixed(half_height);
+            return level::ground_top_y_at(x, reference_feet_y) - to_fixed(half_height);
         }
     }
 
     // --- Skeleton — walker ---
 
-    void init_skeleton(skeleton_state& skeleton, fixed spawn_x)
+    void init_skeleton(skeleton_state& skeleton, fixed spawn_x, fixed spawn_y)
     {
         skeleton.x = spawn_x;
-        skeleton.y = ground_y_for(spawn_x, skeleton_half_height);
+        skeleton.y = ground_y_for(spawn_x, skeleton_half_height, spawn_y);
         skeleton.facing = -1;
         skeleton.hp = difficulty::skeleton_max_hp;
         skeleton.alive = true;
@@ -90,9 +94,9 @@ namespace game
             return;
         }
 
-        fixed current_ground_y = ground_y_for(skeleton.x, skeleton_half_height);
+        fixed current_ground_y = ground_y_for(skeleton.x, skeleton_half_height, skeleton.y);
         fixed next_x = skeleton.x + (skeleton.facing * difficulty::skeleton_speed);
-        fixed next_ground_y = ground_y_for(next_x, skeleton_half_height);
+        fixed next_ground_y = ground_y_for(next_x, skeleton_half_height, skeleton.y);
 
         fixed min_x = to_fixed(-level::room_half_width() + skeleton_half_width);
         fixed max_x = to_fixed(level::room_half_width() - skeleton_half_width);
@@ -196,10 +200,10 @@ namespace game
 
     // --- Skeleton Archer — shooter ---
 
-    void init_archer(archer_state& archer, fixed spawn_x)
+    void init_archer(archer_state& archer, fixed spawn_x, fixed spawn_y)
     {
         archer.x = spawn_x;
-        archer.y = ground_y_for(spawn_x, archer_half_height);
+        archer.y = ground_y_for(spawn_x, archer_half_height, spawn_y);
         archer.facing = -1;
         archer.hp = difficulty::archer_max_hp;
         archer.alive = true;
@@ -217,7 +221,7 @@ namespace game
             return;
         }
 
-        archer.y = ground_y_for(archer.x, archer_half_height);
+        archer.y = ground_y_for(archer.x, archer_half_height, archer.y);
 
         fixed dx = player_x - archer.x;
         archer.facing = dx >= 0 ? 1 : -1;
@@ -252,10 +256,10 @@ namespace game
 
     // --- Zombie — walker, doesn't turn at ledges ---
 
-    void init_zombie(zombie_state& zombie, fixed spawn_x)
+    void init_zombie(zombie_state& zombie, fixed spawn_x, fixed spawn_y)
     {
         zombie.x = spawn_x;
-        zombie.y = ground_y_for(spawn_x, zombie_half_height);
+        zombie.y = ground_y_for(spawn_x, zombie_half_height, spawn_y);
         zombie.velocity_y = 0;
         zombie.facing = -1;
         zombie.hp = difficulty::zombie_max_hp;
@@ -298,7 +302,7 @@ namespace game
             return;
         }
 
-        fixed next_ground_y = level::ground_top_y_at(next_x);
+        fixed next_ground_y = level::ground_top_y_at(next_x, zombie.y + to_fixed(zombie_half_height));
         zombie.x = next_x;
 
         if(next_ground_y >= level::no_ground_y)
@@ -346,10 +350,10 @@ namespace game
 
     // --- Fleaman — jumper, random hop height/direction while grounded ---
 
-    void init_fleaman(fleaman_state& fleaman, fixed spawn_x)
+    void init_fleaman(fleaman_state& fleaman, fixed spawn_x, fixed spawn_y)
     {
         fleaman.x = spawn_x;
-        fleaman.y = ground_y_for(spawn_x, fleaman_half_height);
+        fleaman.y = ground_y_for(spawn_x, fleaman_half_height, spawn_y);
         fleaman.velocity_y = 0;
         fleaman.facing = -1;
         fleaman.hp = difficulty::fleaman_max_hp;
@@ -398,8 +402,12 @@ namespace game
             fleaman.facing = -fleaman.facing;
         }
 
+        fixed old_y = fleaman.y;
         fleaman.y += fleaman.velocity_y;
-        fixed ground_y = ground_y_for(fleaman.x, fleaman_half_height);
+
+        // Reference has to be old_y, not the just-updated fleaman.y -- see
+        // the matching comment in player.cpp's move_and_collide.
+        fixed ground_y = ground_y_for(fleaman.x, fleaman_half_height, old_y);
 
         if(fleaman.y >= ground_y)
         {
@@ -472,6 +480,335 @@ namespace game
         {
             medusa.alive = false;
             medusa.respawn_timer = difficulty::medusa_head_respawn_cooldown_frames;
+        }
+    }
+
+    // --- Bone Colossus — first boss (rooms.md: catacombs_17) ---
+
+    namespace
+    {
+        int bone_colossus_phase_for_hp(int hp, int max_hp)
+        {
+            if(hp * 100 <= max_hp * difficulty::bone_colossus_phase3_hp_percent)
+            {
+                return 3;
+            }
+
+            if(hp * 100 <= max_hp * difficulty::bone_colossus_phase2_hp_percent)
+            {
+                return 2;
+            }
+
+            return 1;
+        }
+
+        // Phase 3's "+25% attack speed" (rooms.md) shrinks recovery/cooldown
+        // frame counts, never the locked windup tells — see difficulty.h's
+        // comment on bone_colossus_phase3_speed_percent.
+        int bone_colossus_speed_scaled(int frames, int phase)
+        {
+            if(phase >= 3)
+            {
+                return (frames * 100) / difficulty::bone_colossus_phase3_speed_percent;
+            }
+
+            return frames;
+        }
+
+        void bone_colossus_end_attack(bone_colossus_state& boss, int phase)
+        {
+            boss.attack = bone_colossus_attack::none;
+            boss.attack_timer = 0;
+            boss.attack_hit_applied = false;
+            boss.decision_timer = bone_colossus_speed_scaled(
+                    difficulty::bone_colossus_decision_cooldown_frames, phase);
+        }
+    }
+
+    void init_bone_colossus(bone_colossus_state& boss, fixed spawn_x, fixed spawn_y)
+    {
+        boss.x = spawn_x;
+        boss.y = spawn_y;
+        boss.facing = -1;
+        boss.hp = difficulty::bone_colossus_max_hp;
+        boss.alive = true;
+        boss.prev_attack_active = false;
+        boss.attack = bone_colossus_attack::none;
+        boss.attack_timer = 0;
+        boss.decision_timer = difficulty::bone_colossus_decision_cooldown_frames;
+        boss.attack_hit_applied = false;
+        boss.summon_timer = difficulty::bone_colossus_summon_interval_frames;
+
+        for(arc_projectile& rib : boss.ribs)
+        {
+            rib = arc_projectile{};
+        }
+    }
+
+    bool update_bone_colossus(bone_colossus_state& boss, fixed player_x)
+    {
+        bool want_summon = false;
+
+        if(boss.alive)
+        {
+            int phase = bone_colossus_phase_for_hp(boss.hp, difficulty::bone_colossus_max_hp);
+
+            // Only turn to face the player while idle -- locking facing for
+            // the duration of an attack keeps its tell honest (rib_spread
+            // fires in boss.facing; flipping mid-windup would fire it
+            // somewhere other than what the telegraph showed).
+            if(boss.attack == bone_colossus_attack::none)
+            {
+                boss.facing = player_x >= boss.x ? 1 : -1;
+            }
+
+            // Phase 2+: periodic Skeleton adds, independent of the attack
+            // state machine below (enemy_spawner.cpp acts on the request).
+            if(phase >= 2)
+            {
+                if(boss.summon_timer > 0)
+                {
+                    --boss.summon_timer;
+                }
+                else
+                {
+                    boss.summon_timer = difficulty::bone_colossus_summon_interval_frames;
+                    want_summon = true;
+                }
+            }
+
+            if(boss.attack == bone_colossus_attack::none)
+            {
+                if(boss.decision_timer > 0)
+                {
+                    --boss.decision_timer;
+                }
+                else
+                {
+                    // Phase 1/2 alternate slam and sweep; phase 3 adds the rib
+                    // spread. Random order so the pattern can't just be
+                    // memorized by position (enemies.md only fixes *which*
+                    // attacks exist per phase, not their sequence).
+                    int choice_count = phase >= 3 ? 3 : 2;
+                    int choice = random::range(0, choice_count - 1);
+
+                    if(choice == 0)
+                    {
+                        boss.attack = bone_colossus_attack::slam;
+                    }
+                    else if(choice == 1)
+                    {
+                        boss.attack = bone_colossus_attack::sweep;
+                    }
+                    else
+                    {
+                        boss.attack = bone_colossus_attack::rib_spread;
+                    }
+
+                    boss.attack_timer = 0;
+                    boss.attack_hit_applied = false;
+                }
+            }
+            else if(boss.attack == bone_colossus_attack::slam)
+            {
+                int windup = difficulty::bone_colossus_slam_windup_frames;
+                int active = bone_colossus_speed_scaled(difficulty::bone_colossus_slam_active_frames, phase);
+                int recovery = bone_colossus_speed_scaled(difficulty::bone_colossus_slam_recovery_frames, phase);
+
+                ++boss.attack_timer;
+
+                if(boss.attack_timer >= windup + active + recovery)
+                {
+                    // Phase 2+: a 2-hit combo (rooms.md) -- the second hit
+                    // gets its own fresh windup rather than ending here.
+                    if(phase >= 2)
+                    {
+                        boss.attack = bone_colossus_attack::slam_second;
+                        boss.attack_timer = 0;
+                        boss.attack_hit_applied = false;
+                    }
+                    else
+                    {
+                        bone_colossus_end_attack(boss, phase);
+                    }
+                }
+            }
+            else if(boss.attack == bone_colossus_attack::slam_second)
+            {
+                int windup = difficulty::bone_colossus_slam2_windup_frames;
+                int active = bone_colossus_speed_scaled(difficulty::bone_colossus_slam2_active_frames, phase);
+                int recovery = bone_colossus_speed_scaled(difficulty::bone_colossus_slam2_recovery_frames, phase);
+
+                ++boss.attack_timer;
+
+                if(boss.attack_timer >= windup + active + recovery)
+                {
+                    bone_colossus_end_attack(boss, phase);
+                }
+            }
+            else if(boss.attack == bone_colossus_attack::sweep)
+            {
+                int windup = difficulty::bone_colossus_sweep_windup_frames;
+                int active = bone_colossus_speed_scaled(difficulty::bone_colossus_sweep_active_frames, phase);
+                int recovery = bone_colossus_speed_scaled(difficulty::bone_colossus_sweep_recovery_frames, phase);
+
+                ++boss.attack_timer;
+
+                if(boss.attack_timer >= windup + active + recovery)
+                {
+                    bone_colossus_end_attack(boss, phase);
+                }
+            }
+            else if(boss.attack == bone_colossus_attack::rib_spread)
+            {
+                int windup = difficulty::bone_colossus_ribs_windup_frames;
+
+                ++boss.attack_timer;
+
+                if(boss.attack_timer == windup)
+                {
+                    // Fired together, fanned by initial vertical velocity —
+                    // gravity then spreads them further apart over their
+                    // flight, opening the gaps rooms.md calls for ("must be
+                    // positioned between them").
+                    for(int i = 0; i < bone_colossus_rib_count; ++i)
+                    {
+                        int offset_index = i - bone_colossus_rib_count / 2; // -2..2
+                        fixed vy = -to_fixed(2) + (offset_index * difficulty::bone_colossus_rib_spread_step);
+                        launch_arc_projectile(boss.ribs[i], boss.x, boss.y,
+                                boss.facing * difficulty::bone_colossus_rib_speed, vy);
+                    }
+                }
+
+                if(boss.attack_timer >= windup)
+                {
+                    bone_colossus_end_attack(boss, phase);
+                }
+            }
+        }
+
+        for(arc_projectile& rib : boss.ribs)
+        {
+            update_arc_projectile(rib, difficulty::bone_colossus_rib_gravity,
+                    difficulty::bone_colossus_rib_lifetime_frames);
+        }
+
+        return want_summon;
+    }
+
+    boss_attack_hitbox get_bone_colossus_attack_hitbox(const bone_colossus_state& boss)
+    {
+        boss_attack_hitbox box{};
+
+        if(! boss.alive)
+        {
+            return box;
+        }
+
+        int phase = bone_colossus_phase_for_hp(boss.hp, difficulty::bone_colossus_max_hp);
+
+        if(boss.attack == bone_colossus_attack::slam || boss.attack == bone_colossus_attack::slam_second)
+        {
+            bool is_second = boss.attack == bone_colossus_attack::slam_second;
+            int windup = is_second ? difficulty::bone_colossus_slam2_windup_frames
+                    : difficulty::bone_colossus_slam_windup_frames;
+            int active_frames = is_second ? difficulty::bone_colossus_slam2_active_frames
+                    : difficulty::bone_colossus_slam_active_frames;
+            int active = bone_colossus_speed_scaled(active_frames, phase);
+
+            if(boss.attack_timer >= windup && boss.attack_timer < windup + active)
+            {
+                box.active = true;
+                box.unrollable = false;
+                box.x = boss.x;
+                box.y = boss.y;
+                box.half_width = difficulty::bone_colossus_slam_half_width;
+                box.half_height = difficulty::bone_colossus_slam_half_height;
+                box.damage = difficulty::bone_colossus_slam_damage;
+            }
+        }
+        else if(boss.attack == bone_colossus_attack::sweep)
+        {
+            int windup = difficulty::bone_colossus_sweep_windup_frames;
+            int active = bone_colossus_speed_scaled(difficulty::bone_colossus_sweep_active_frames, phase);
+
+            if(boss.attack_timer >= windup && boss.attack_timer < windup + active)
+            {
+                box.active = true;
+                box.unrollable = true;
+                box.x = boss.x;
+
+                // A low band at the boss's feet, not centered on its (much
+                // taller) body -- "must JUMP not roll" (rooms.md) needs the
+                // band to actually sit near the ground.
+                box.y = boss.y + to_fixed(bone_colossus_half_height)
+                        - difficulty::bone_colossus_sweep_half_height;
+                box.half_width = difficulty::bone_colossus_sweep_half_width;
+                box.half_height = difficulty::bone_colossus_sweep_half_height;
+                box.damage = difficulty::bone_colossus_sweep_damage;
+            }
+        }
+
+        // rib_spread deals damage via the ribs[] projectiles directly (see
+        // apply_bone_colossus_attack_to_player) rather than this hitbox.
+
+        return box;
+    }
+
+    void apply_bone_colossus_attack_to_player(bone_colossus_state& boss, player_state& player)
+    {
+        boss_attack_hitbox box = get_bone_colossus_attack_hitbox(boss);
+
+        if(box.active && ! boss.attack_hit_applied)
+        {
+            fixed player_half_w = to_fixed(player_half_width);
+            fixed player_half_h = to_fixed(player_half_height);
+
+            bool overlap_x = (box.x - box.half_width) < (player.x + player_half_w)
+                    && (box.x + box.half_width) > (player.x - player_half_w);
+            bool overlap_y = (box.y - box.half_height) < (player.y + player_half_h)
+                    && (box.y + box.half_height) > (player.y - player_half_h);
+
+            if(overlap_x && overlap_y)
+            {
+                if(box.unrollable)
+                {
+                    damage_player_unrollable(player, box.damage);
+                }
+                else
+                {
+                    damage_player(player, box.damage);
+                }
+
+                boss.attack_hit_applied = true;
+            }
+        }
+
+        // Rib-cage bones (phase 3) damage on contact like any other arc
+        // projectile, but unrollable -- only standing between them avoids
+        // it (rooms.md).
+        for(arc_projectile& rib : boss.ribs)
+        {
+            if(! rib.active)
+            {
+                continue;
+            }
+
+            fixed half_w = to_fixed(projectile_half_width);
+            fixed half_h = to_fixed(projectile_half_height);
+            fixed player_half_w = to_fixed(player_half_width);
+            fixed player_half_h = to_fixed(player_half_height);
+
+            bool overlap_x = (rib.x - half_w) < (player.x + player_half_w)
+                    && (rib.x + half_w) > (player.x - player_half_w);
+            bool overlap_y = (rib.y - half_h) < (player.y + player_half_h)
+                    && (rib.y + half_h) > (player.y - player_half_h);
+
+            if(overlap_x && overlap_y)
+            {
+                damage_player_unrollable(player, difficulty::bone_colossus_ribs_damage);
+                rib.active = false;
+            }
         }
     }
 }

@@ -112,7 +112,7 @@ namespace game
         arc_projectile bone;
     };
 
-    void init_skeleton(skeleton_state& skeleton, fixed spawn_x);
+    void init_skeleton(skeleton_state& skeleton, fixed spawn_x, fixed spawn_y);
     void update_skeleton(skeleton_state& skeleton);
 
     // --- Bat — flyer (enemies.md) ---
@@ -152,7 +152,7 @@ namespace game
         arc_projectile arrow;
     };
 
-    void init_archer(archer_state& archer, fixed spawn_x);
+    void init_archer(archer_state& archer, fixed spawn_x, fixed spawn_y);
     void update_archer(archer_state& archer, fixed player_x);
 
     // --- Zombie — walker, doesn't turn at ledges (enemies.md) ---
@@ -172,7 +172,7 @@ namespace game
         bool falling = false; // walked off a ledge — unlike the Skeleton, it doesn't turn around
     };
 
-    void init_zombie(zombie_state& zombie, fixed spawn_x);
+    void init_zombie(zombie_state& zombie, fixed spawn_x, fixed spawn_y);
     void update_zombie(zombie_state& zombie);
 
     // --- Bone Pillar — stationary shooter (enemies.md) ---
@@ -215,7 +215,7 @@ namespace game
         int hop_timer = 0; // frames left grounded before the next random hop
     };
 
-    void init_fleaman(fleaman_state& fleaman, fixed spawn_x);
+    void init_fleaman(fleaman_state& fleaman, fixed spawn_x, fixed spawn_y);
     void update_fleaman(fleaman_state& fleaman);
 
     // --- Medusa Head — continuous-spawn flyer (enemies.md) ---
@@ -243,4 +243,72 @@ namespace game
 
     void init_medusa_head(medusa_head_state& medusa, fixed spawn_x, fixed spawn_y, int facing);
     void update_medusa_head(medusa_head_state& medusa);
+
+    // --- Bone Colossus — first boss (rooms.md: catacombs_17) ---
+    // Three phases by HP fraction, each changing its attack pattern
+    // (enemies.md boss rule: "phases change the pattern, not just the
+    // numbers"), not just three copies of the same fight with more damage.
+    // See update_bone_colossus for the phase thresholds and attack timings
+    // (difficulty.h has the frame counts).
+
+    constexpr int bone_colossus_half_width = 32;
+    constexpr int bone_colossus_half_height = 32;
+    constexpr int bone_colossus_rib_count = 5;
+
+    enum class bone_colossus_attack
+    {
+        none,
+        slam,        // overhead slam — rollable
+        slam_second, // phase 2's second combo hit — its own fresh tell, so the first roll's i-frames have ended by the time this goes active
+        sweep,       // low bone sweep — unrollable, only jumping clears it
+        rib_spread,  // phase 3's 5-bone arc — unrollable, only standing in a gap avoids it
+    };
+
+    // A melee attack's hitbox — the boss equivalent of player::attack_hitbox.
+    // unrollable means dodge i-frames don't stop it (enemies.md boss rule:
+    // "at least one attack cannot be rolled") — see
+    // player::damage_player_unrollable.
+    struct boss_attack_hitbox
+    {
+        bool active = false;
+        bool unrollable = false;
+        fixed x = 0;
+        fixed y = 0;
+        fixed half_width = 0;
+        fixed half_height = 0;
+        int damage = 0;
+    };
+
+    struct bone_colossus_state
+    {
+        fixed x = 0;
+        fixed y = 0;
+        int facing = -1;
+        int hp = 0;
+        bool alive = true;
+        bool prev_attack_active = false; // for apply_whip_to_enemy
+
+        bone_colossus_attack attack = bone_colossus_attack::none;
+        int attack_timer = 0;   // frames since the current attack began
+        int decision_timer = 0; // frames until the next attack while idle (attack == none)
+        bool attack_hit_applied = false; // one hit per attack's active window, not one per frame
+
+        int summon_timer = 0; // phase 2+: frames until the next Skeleton pair (enemy_spawner.cpp acts on it)
+
+        arc_projectile ribs[bone_colossus_rib_count]; // phase 3's rib-cage spread
+    };
+
+    void init_bone_colossus(bone_colossus_state& boss, fixed spawn_x, fixed spawn_y);
+
+    // Returns true on the exact frame phase 2+ wants a pair of Skeletons
+    // summoned — enemy_spawner.cpp owns the Skeleton array, so it's the one
+    // that actually spawns them; this only requests it.
+    bool update_bone_colossus(bone_colossus_state& boss, fixed player_x);
+
+    boss_attack_hitbox get_bone_colossus_attack_hitbox(const bone_colossus_state& boss);
+
+    // Applies get_bone_colossus_attack_hitbox's current hitbox to the
+    // player, once per attack (not once per frame it's active), respecting
+    // unrollable per boss_attack_hitbox.
+    void apply_bone_colossus_attack_to_player(bone_colossus_state& boss, player_state& player);
 }

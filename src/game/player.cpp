@@ -17,9 +17,13 @@ namespace game
             return to_fixed(level::room_half_width() - player_half_width);
         }
 
-        fixed grounded_y_at(fixed x)
+        // reference_y is the player's own y to check from (see
+        // level::ground_top_y_at) -- typically their current position, so a
+        // platform above them isn't mistaken for the ground they're on.
+        fixed grounded_y_at(fixed x, fixed reference_y)
         {
-            return level::ground_top_y_at(x) - to_fixed(player_half_height);
+            fixed reference_feet_y = reference_y + to_fixed(player_half_height);
+            return level::ground_top_y_at(x, reference_feet_y) - to_fixed(player_half_height);
         }
 
         // --- Per-character movement tunables (SPEC.md section 3) ---
@@ -167,19 +171,51 @@ namespace game
 
         void move_and_collide(player_state& player)
         {
-            player.x += player.velocity_x;
+            fixed old_y = player.y;
+            fixed new_x = player.x + player.velocity_x;
+
+            if(new_x < min_x())
+            {
+                new_x = min_x();
+            }
+            else if(new_x > max_x())
+            {
+                new_x = max_x();
+            }
+
+            // A platform taller than where the player currently is blocks
+            // horizontal movement like a wall, rather than being an
+            // automatic step up onto it. Without this, walking into the
+            // side of any platform — regardless of height — instantly
+            // climbs it, which defeats jump-height-gated progression
+            // (SPEC.md's relics: higher jumps reach higher ledges).
+            //
+            // grounded_y_at can't answer this: a platform taller than the
+            // player is exactly what it excludes (it isn't ground the
+            // player is standing on), so it reports the open column below
+            // as if the taller platform weren't there at all, and the
+            // player would just walk straight through it. Checking whether
+            // a closer overhead obstacle exists at new_x than at the
+            // player's current x is the actual wall test.
+            fixed old_feet_y = old_y + to_fixed(player_half_height);
+            fixed old_overhead = level::lowest_overhead_top_at(player.x, old_feet_y);
+            fixed new_overhead = level::lowest_overhead_top_at(new_x, old_feet_y);
+
+            if(new_overhead > old_overhead)
+            {
+                new_x = player.x;
+            }
+
+            player.x = new_x;
             player.y += player.velocity_y;
 
-            if(player.x < min_x())
-            {
-                player.x = min_x();
-            }
-            else if(player.x > max_x())
-            {
-                player.x = max_x();
-            }
-
-            fixed ground_y = grounded_y_at(player.x);
+            // The reference has to be old_y, not the just-updated player.y:
+            // gravity always moves the player slightly past a surface
+            // before this check runs (that's what "player.y >= ground_y"
+            // below is for), so using the post-move position here would
+            // exclude the very platform being landed on as "already passed"
+            // — every single frame, which is a permanent fall, not a landing.
+            fixed ground_y = grounded_y_at(player.x, old_y);
 
             if(player.y >= ground_y)
             {
@@ -359,7 +395,7 @@ namespace game
             }
 
             // A roll/dash hugs the ground it crosses rather than falling mid-way.
-            player.y = grounded_y_at(player.x);
+            player.y = grounded_y_at(player.x, player.y);
             player.velocity_y = 0;
             player.grounded = true;
             player.frames_since_grounded = 0;
@@ -503,6 +539,23 @@ namespace game
         return damage;
     }
 
+    namespace
+    {
+        void apply_damage_and_iframes(player_state& player, int raw_damage)
+        {
+            int damage = apply_defense(raw_damage, player.def);
+
+            player.hp -= damage;
+
+            if(player.hp < 0)
+            {
+                player.hp = 0;
+            }
+
+            player.invuln_frames = difficulty::player_invuln_frames;
+        }
+    }
+
     void damage_player(player_state& player, int raw_damage)
     {
         if(player_is_invulnerable(player))
@@ -510,16 +563,17 @@ namespace game
             return;
         }
 
-        int damage = apply_defense(raw_damage, player.def);
+        apply_damage_and_iframes(player, raw_damage);
+    }
 
-        player.hp -= damage;
-
-        if(player.hp < 0)
+    void damage_player_unrollable(player_state& player, int raw_damage)
+    {
+        if(player.invuln_frames > 0)
         {
-            player.hp = 0;
+            return;
         }
 
-        player.invuln_frames = difficulty::player_invuln_frames;
+        apply_damage_and_iframes(player, raw_damage);
     }
 
     void grant_exp(player_state& player, int amount)
