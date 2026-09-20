@@ -7,14 +7,7 @@ namespace game
 {
     namespace
     {
-        struct checkpoint
-        {
-            int room_index = 0;
-            fixed x = 0;
-            fixed y = 0;
-        };
-
-        checkpoint current_checkpoint;
+        checkpoint_info current_checkpoint;
 
         void respawn(player_state& player)
         {
@@ -36,6 +29,11 @@ namespace game
         current_checkpoint.room_index = room_index;
         current_checkpoint.x = x;
         current_checkpoint.y = y;
+    }
+
+    checkpoint_info current_checkpoint_info()
+    {
+        return current_checkpoint;
     }
 
     void update_world(player_state& player)

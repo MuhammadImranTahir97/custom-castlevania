@@ -22,7 +22,10 @@
 #include "input.h"
 #include "level.h"
 #include "player.h"
+#include "save_data.h"
 #include "world.h"
+
+#include "save_io.h"
 
 namespace
 {
@@ -311,6 +314,62 @@ namespace
             mp_sprites[i].set_visible(i < mp_lit);
         }
     }
+
+    // Grey-box slot picker (SPEC.md section 9: 3 slots) — a real title
+    // screen with slot details (level, room, playtime) is a text-rendering
+    // feature this project doesn't have yet (no sprite_text_generator use
+    // anywhere else either); this is deliberately just enough to make the
+    // 3 slots real and player-choosable. LEFT/RIGHT moves the cursor, A
+    // confirms — an empty slot starts a new game there, an occupied one
+    // continues it. All of this screen's sprites are local to this
+    // function and freed (via bn::sprite_ptr's RAII) before gameplay
+    // starts, so none of it costs OAM budget once playing.
+    int run_slot_select_screen()
+    {
+        constexpr int slot_x[game::save_slot_count] = { -80, 0, 80 };
+
+        bn::sprite_ptr slot_sprites[game::save_slot_count] = {
+            bn::sprite_items::ground.create_sprite(slot_x[0], 0),
+            bn::sprite_items::ground.create_sprite(slot_x[1], 0),
+            bn::sprite_items::ground.create_sprite(slot_x[2], 0),
+        };
+        // A small marker under each occupied slot -- the only way to tell
+        // "continue" from "new game" here without text.
+        bn::sprite_ptr occupied_sprites[game::save_slot_count] = {
+            bn::sprite_items::bone.create_sprite(slot_x[0], 20),
+            bn::sprite_items::bone.create_sprite(slot_x[1], 20),
+            bn::sprite_items::bone.create_sprite(slot_x[2], 20),
+        };
+        bn::sprite_ptr cursor_sprite = bn::sprite_items::hitbox.create_sprite(slot_x[0], -24);
+
+        for(int i = 0; i < game::save_slot_count; ++i)
+        {
+            occupied_sprites[i].set_visible(platform_save::slot_has_data(i));
+        }
+
+        int selected = 0;
+
+        while(true)
+        {
+            if(bn::keypad::pressed(bn::keypad::key_type::LEFT) && selected > 0)
+            {
+                --selected;
+            }
+            else if(bn::keypad::pressed(bn::keypad::key_type::RIGHT) && selected < game::save_slot_count - 1)
+            {
+                ++selected;
+            }
+
+            cursor_sprite.set_x(slot_x[selected]);
+
+            if(bn::keypad::pressed(bn::keypad::key_type::A))
+            {
+                return selected;
+            }
+
+            bn::core::update();
+        }
+    }
 }
 
 int main()
@@ -434,16 +493,37 @@ int main()
         bn::sprite_items::hud_mp.create_sprite(-48, -64), bn::sprite_items::hud_mp.create_sprite(-40, -64),
     };
 
-    game::level::spawn_point spawn = game::level::load_room(0);
+    int active_slot = run_slot_select_screen();
 
+    game::level::spawn_point spawn;
     game::player_state player;
-    game::init_player(player, spawn.x, spawn.y);
-    game::set_checkpoint(0, spawn.x, spawn.y);
+
+    if(platform_save::slot_has_data(active_slot))
+    {
+        game::save_slot_data save = platform_save::read_slot(active_slot);
+        spawn = game::level::load_room(save.checkpoint_room_index);
+        game::init_player(player, save.checkpoint_x, save.checkpoint_y);
+        game::apply_save_slot_data(save, player);
+        game::set_checkpoint(save.checkpoint_room_index, save.checkpoint_x, save.checkpoint_y);
+    }
+    else
+    {
+        spawn = game::level::load_room(0);
+        game::init_player(player, spawn.x, spawn.y);
+        game::set_checkpoint(0, spawn.x, spawn.y);
+    }
 
     game::spawn_room_enemies();
     populate_room_tiles();
 
     int last_drawn_room = -1;
+
+    // Frames left in the "just saved" blink on the save point sprite —
+    // the only feedback a manual save gets, in place of a real "Saving..."
+    // prompt (that needs text rendering, which nothing in this project
+    // uses yet).
+    constexpr int save_flash_duration_frames = 24;
+    int save_flash_frames = 0;
 
     while(true)
     {
@@ -485,6 +565,17 @@ int main()
         game::apply_enemy_contact_to_player(player);
         game::sync_boss_room_seal();
 
+        // Manual save only (SPEC.md section 9) -- START while standing in
+        // a save room, same room/HP/MP checkpoint entering it already set.
+        if(bn::keypad::pressed(bn::keypad::key_type::START) && game::level::current_room_is_save_room())
+        {
+            game::checkpoint_info checkpoint = game::current_checkpoint_info();
+            game::save_slot_data save = game::build_save_slot_data(player, checkpoint.room_index,
+                    checkpoint.x, checkpoint.y);
+            platform_save::write_slot(active_slot, save);
+            save_flash_frames = save_flash_duration_frames;
+        }
+
         bool is_rival = player.character == game::character_kind::rival;
         bn::sprite_ptr& active_sprite = is_rival ? rival_sprite : hunter_sprite;
         bn::sprite_ptr& inactive_sprite = is_rival ? hunter_sprite : rival_sprite;
@@ -505,6 +596,12 @@ int main()
         {
             game::level::spawn_point room_spawn = game::level::current_room_spawn_point();
             set_world_position(save_point_sprite, room_spawn.x, room_spawn.y);
+        }
+
+        if(save_flash_frames > 0)
+        {
+            --save_flash_frames;
+            save_point_sprite.set_visible((save_flash_frames / 3) % 2 == 0);
         }
 
         update_tile_sprites(tile_sprites);
