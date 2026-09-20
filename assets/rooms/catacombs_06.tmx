@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="8" tileheight="8" infinite="0" nextlayerid="2" nextobjectid="8">
+ <objectgroup id="1" name="objects">
+  <object id="1" name="floor" x="0" y="128" width="240" height="32">
+   <properties>
+    <property name="kind" value="platform"/>
+   </properties>
+  </object>
+  <object id="2" name="door_to_catacombs_05" x="0" y="104" width="32" height="32">
+   <properties>
+    <property name="kind" value="door"/>
+    <property name="target_room" value="catacombs_05"/>
+    <property name="target_x" type="int" value="60"/>
+    <property name="target_y" type="int" value="24"/>
+   </properties>
+  </object>
+  <object id="3" name="door_to_catacombs_07" x="224" y="0" width="16" height="160">
+   <properties>
+    <property name="kind" value="door"/>
+    <property name="target_room" value="catacombs_07"/>
+    <property name="target_x" type="int" value="20"/>
+    <property name="target_y" type="int" value="120"/>
+   </properties>
+  </object>
+  <object id="4" name="spawn" x="20" y="120">
+   <properties>
+    <property name="kind" value="spawn"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="5" name="bone_pillar_1" x="220" y="110">
+   <properties>
+    <property name="kind" value="enemy"/>
+    <property name="enemy_type" value="bone_pillar"/>
+    <property name="facing" type="int" value="-1"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="6" name="zombie_1" x="60" y="120">
+   <properties>
+    <property name="kind" value="enemy"/>
+    <property name="enemy_type" value="zombie"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="7" name="zombie_2" x="140" y="120">
+   <properties>
+    <property name="kind" value="enemy"/>
+    <property name="enemy_type" value="zombie"/>
+   </properties>
+   <point/>
+  </object>
+ </objectgroup>
+</map>

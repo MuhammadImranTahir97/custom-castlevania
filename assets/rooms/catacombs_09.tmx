@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="8" tileheight="8" infinite="0" nextlayerid="2" nextobjectid="9">
+ <objectgroup id="1" name="objects">
+  <object id="1" name="floor" x="0" y="128" width="240" height="32">
+   <properties>
+    <property name="kind" value="platform"/>
+   </properties>
+  </object>
+  <object id="2" name="platform_return" x="100" y="88" width="48" height="16">
+   <properties>
+    <property name="kind" value="platform"/>
+   </properties>
+  </object>
+  <object id="3" name="door_to_catacombs_02" x="100" y="48" width="48" height="40">
+   <properties>
+    <property name="kind" value="door"/>
+    <property name="target_room" value="catacombs_02"/>
+    <property name="target_x" type="int" value="170"/>
+    <property name="target_y" type="int" value="120"/>
+   </properties>
+  </object>
+  <object id="4" name="spawn" x="20" y="120">
+   <properties>
+    <property name="kind" value="spawn"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="5" name="zombie_1" x="40" y="120">
+   <properties>
+    <property name="kind" value="enemy"/>
+    <property name="enemy_type" value="zombie"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="6" name="zombie_2" x="70" y="120">
+   <properties>
+    <property name="kind" value="enemy"/>
+    <property name="enemy_type" value="zombie"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="7" name="zombie_3" x="170" y="120">
+   <properties>
+    <property name="kind" value="enemy"/>
+    <property name="enemy_type" value="zombie"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="8" name="zombie_4" x="200" y="120">
+   <properties>
+    <property name="kind" value="enemy"/>
+    <property name="enemy_type" value="zombie"/>
+   </properties>
+   <point/>
+  </object>
+ </objectgroup>
+</map>

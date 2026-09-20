@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="60" height="20" tilewidth="8" tileheight="8" infinite="0" nextlayerid="2" nextobjectid="14">
+ <objectgroup id="1" name="objects">
+  <object id="1" name="floor_1" x="0" y="128" width="88" height="32">
+   <properties>
+    <property name="kind" value="platform"/>
+   </properties>
+  </object>
+  <object id="2" name="floor_2" x="128" y="128" width="64" height="32">
+   <properties>
+    <property name="kind" value="platform"/>
+   </properties>
+  </object>
+  <object id="3" name="floor_3" x="232" y="128" width="64" height="32">
+   <properties>
+    <property name="kind" value="platform"/>
+   </properties>
+  </object>
+  <object id="4" name="floor_4" x="336" y="128" width="144" height="32">
+   <properties>
+    <property name="kind" value="platform"/>
+   </properties>
+  </object>
+  <object id="5" name="door_to_catacombs_08" x="0" y="0" width="16" height="160">
+   <properties>
+    <property name="kind" value="door"/>
+    <property name="target_room" value="catacombs_08"/>
+    <property name="target_x" type="int" value="220"/>
+    <property name="target_y" type="int" value="120"/>
+   </properties>
+  </object>
+  <object id="6" name="door_to_catacombs_13" x="464" y="0" width="16" height="160">
+   <properties>
+    <property name="kind" value="door"/>
+    <property name="target_room" value="catacombs_13"/>
+    <property name="target_x" type="int" value="20"/>
+    <property name="target_y" type="int" value="120"/>
+   </properties>
+  </object>
+  <object id="7" name="door_to_catacombs_14" x="150" y="104" width="24" height="32">
+   <properties>
+    <property name="kind" value="door"/>
+    <property name="target_room" value="catacombs_14"/>
+    <property name="target_x" type="int" value="120"/>
+    <property name="target_y" type="int" value="24"/>
+   </properties>
+  </object>
+  <object id="8" name="spawn" x="20" y="120">
+   <properties>
+    <property name="kind" value="spawn"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="9" name="skeleton_1" x="40" y="120">
+   <properties>
+    <property name="kind" value="enemy"/>
+    <property name="enemy_type" value="skeleton"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="10" name="skeleton_2" x="260" y="120">
+   <properties>
+    <property name="kind" value="enemy"/>
+    <property name="enemy_type" value="skeleton"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="11" name="skeleton_3" x="400" y="120">
+   <properties>
+    <property name="kind" value="enemy"/>
+    <property name="enemy_type" value="skeleton"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="12" name="medusa_head_1" x="10" y="110">
+   <properties>
+    <property name="kind" value="enemy"/>
+    <property name="enemy_type" value="medusa_head"/>
+    <property name="facing" type="int" value="1"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="13" name="medusa_head_2" x="10" y="90">
+   <properties>
+    <property name="kind" value="enemy"/>
+    <property name="enemy_type" value="medusa_head"/>
+    <property name="facing" type="int" value="1"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="14" name="medusa_head_3" x="460" y="110">
+   <properties>
+    <property name="kind" value="enemy"/>
+    <property name="enemy_type" value="medusa_head"/>
+    <property name="facing" type="int" value="-1"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="15" name="medusa_head_4" x="460" y="90">
+   <properties>
+    <property name="kind" value="enemy"/>
+    <property name="enemy_type" value="medusa_head"/>
+    <property name="facing" type="int" value="-1"/>
+   </properties>
+   <point/>
+  </object>
+ </objectgroup>
+</map>

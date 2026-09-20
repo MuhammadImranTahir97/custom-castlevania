@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="8" tileheight="8" infinite="0" nextlayerid="2" nextobjectid="6">
+ <objectgroup id="1" name="objects">
+  <object id="1" name="floor" x="0" y="128" width="240" height="32">
+   <properties>
+    <property name="kind" value="platform"/>
+   </properties>
+  </object>
+  <object id="2" name="door_to_catacombs_13" x="0" y="0" width="16" height="160">
+   <properties>
+    <property name="kind" value="door"/>
+    <property name="target_room" value="catacombs_13"/>
+    <property name="target_x" type="int" value="210"/>
+    <property name="target_y" type="int" value="120"/>
+   </properties>
+  </object>
+  <object id="3" name="door_to_catacombs_17" x="224" y="0" width="16" height="160">
+   <properties>
+    <property name="kind" value="door"/>
+    <property name="target_room" value="catacombs_17"/>
+    <property name="target_x" type="int" value="30"/>
+    <property name="target_y" type="int" value="120"/>
+   </properties>
+  </object>
+  <object id="4" name="spawn" x="20" y="120">
+   <properties>
+    <property name="kind" value="spawn"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="5" name="skeleton_1" x="60" y="120">
+   <properties>
+    <property name="kind" value="enemy"/>
+    <property name="enemy_type" value="skeleton"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="6" name="skeleton_2" x="160" y="120">
+   <properties>
+    <property name="kind" value="enemy"/>
+    <property name="enemy_type" value="skeleton"/>
+   </properties>
+   <point/>
+  </object>
+ </objectgroup>
+</map>
