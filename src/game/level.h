@@ -37,13 +37,35 @@ namespace game::level
         int width_px;
     };
 
+    // Highest room count this module tracks visited/not for the map screen
+    // (SPEC.md section 9) — generously above the current room count so
+    // adding rooms doesn't need a code change here, matching CLAUDE.md's
+    // "adding room #91 must never require writing code".
+    constexpr int max_tracked_rooms = 64;
+
     // Makes the given room (by index into the generated room table) the
     // active room and returns its authored spawn point. Also resets the
-    // camera to center on that spawn point.
+    // camera to center on that spawn point. Marks the room visited (see
+    // room_visited) — once true, that never reverts.
     spawn_point load_room(int room_index);
+
+    // True once load_room has been called for this room index at least
+    // once (this session — not persisted to SRAM yet, see save_data.h).
+    // The map screen (SPEC.md: "explored rooms filled in") uses this.
+    bool room_visited(int room_index);
+
+    // How many distinct rooms room_visited would report true for, out of
+    // the given total — the map screen's room completion %.
+    int visited_room_count(int total_rooms);
 
     // Index of the currently active room.
     int current_room_index();
+
+    // Total number of rooms in the generated room table (all of
+    // assets/rooms/*.tmj, including non-Catacombs/sandbox rooms — not
+    // just the ones map_layout.h has a map position for). Debug room-warp
+    // uses this to know the valid index range; nothing else needs it yet.
+    int total_room_count();
 
     // The active room's authored spawn point, without switching rooms
     // (unlike load_room). Used to checkpoint at a save room's own spawn.

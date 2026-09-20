@@ -40,6 +40,10 @@ namespace game
 
         bone_colossus_state bone_colossus;
         bool bone_colossus_active = false;
+
+        // See bone_colossus_defeated -- deliberately NOT reset by
+        // spawn_room_enemies, unlike bone_colossus_active above.
+        bool bone_colossus_ever_defeated = false;
     }
 
     void spawn_room_enemies()
@@ -269,6 +273,7 @@ namespace game
                     difficulty::bone_colossus_defense, power, hitbox))
             {
                 grant_exp(player, difficulty::bone_colossus_exp_reward);
+                bone_colossus_ever_defeated = true;
             }
         }
     }
@@ -415,5 +420,10 @@ namespace game
     void sync_boss_room_seal()
     {
         level::set_room_sealed(bone_colossus_active && bone_colossus.alive);
+    }
+
+    bool bone_colossus_defeated()
+    {
+        return bone_colossus_ever_defeated;
     }
 }

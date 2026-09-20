@@ -56,4 +56,13 @@ namespace game
     // fight and only open on victory). Call once per frame; a no-op room
     // without an active boss just keeps the seal off.
     void sync_boss_room_seal();
+
+    // True once the Bone Colossus has been killed, and stays true for the
+    // rest of the session even after leaving and re-entering its room
+    // (unlike bone_colossus_is_active/active_bone_colossus, which only
+    // reflect the current room's freshly-spawned instance). The map
+    // screen's sealed-door marker (SPEC.md section 9) needs this to answer
+    // "is catacombs_17 still sealed" when viewed from anywhere else, not
+    // just while standing in it.
+    bool bone_colossus_defeated();
 }

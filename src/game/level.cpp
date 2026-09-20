@@ -17,6 +17,9 @@ namespace game::level
         // See room_is_sealed.
         bool room_sealed = false;
 
+        // See room_visited.
+        bool visited[max_tracked_rooms] = {};
+
         const room_data::room_def& active_room()
         {
             return room_data::rooms[active_room_index];
@@ -66,15 +69,50 @@ namespace game::level
         suppressed_door_index = -1;
         room_sealed = false;
 
+        if(room_index >= 0 && room_index < max_tracked_rooms)
+        {
+            visited[room_index] = true;
+        }
+
         const room_data::room_def& room = active_room();
         spawn_point spawn{ to_fixed(room.spawn_x), to_fixed(room.spawn_y) };
         update_camera(spawn.x, spawn.y);
         return spawn;
     }
 
+    bool room_visited(int room_index)
+    {
+        if(room_index < 0 || room_index >= max_tracked_rooms)
+        {
+            return false;
+        }
+
+        return visited[room_index];
+    }
+
+    int visited_room_count(int total_rooms)
+    {
+        int count = 0;
+
+        for(int i = 0; i < total_rooms && i < max_tracked_rooms; ++i)
+        {
+            if(visited[i])
+            {
+                ++count;
+            }
+        }
+
+        return count;
+    }
+
     int current_room_index()
     {
         return active_room_index;
+    }
+
+    int total_room_count()
+    {
+        return room_data::room_count;
     }
 
     bool current_room_is_save_room()

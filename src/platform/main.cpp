@@ -21,6 +21,7 @@
 #include "fixed.h"
 #include "input.h"
 #include "level.h"
+#include "map_layout.h"
 #include "player.h"
 #include "save_data.h"
 #include "world.h"
@@ -315,6 +316,154 @@ namespace
         }
     }
 
+    constexpr int pause_tab_count = 5; // Status, Arcana, Items, Map, Options
+    constexpr int map_tab_index = 3;
+
+    // Screen-space (not world-space — the pause menu isn't affected by the
+    // camera) position for a room's map marker.
+    void map_marker_screen_position(int room_index, int& out_x, int& out_y)
+    {
+        constexpr int scale_px = 14;
+        constexpr int offset_x_px = -77;
+        constexpr int offset_y_px = 7;
+
+        game::map_grid_position pos = game::map_position_for_room(room_index);
+        out_x = pos.x * scale_px + offset_x_px;
+        out_y = pos.y * scale_px + offset_y_px;
+    }
+
+    // Grey-box pause menu (SPEC.md section 9: 5 tabs, shoulder buttons
+    // cycle). Status is covered by the HUD already on screen (HP/MP) —
+    // nothing extra to add there. Arcana/Items/Options are structural
+    // only: none of those are systems in the game yet (no Arcana combos,
+    // no inventory, no settings), so there's nothing real to show, and
+    // inventing placeholder data for them would be more misleading than
+    // an empty tab. Map is where the real content is: explored rooms,
+    // save points, the current room, and sealed-door markers (the Bone
+    // Colossus's arena is the only thing that seals doors right now).
+    //
+    // cursor_sprite doubles as both "which of the 5 tabs is active" (any
+    // tab but Map) and "current room" (Map tab) — one sprite for both
+    // keeps this within the sprite budget alongside everything else
+    // already on screen (see the palette-budget comments elsewhere in
+    // this file for why reusing sprites, not adding new ones, is the
+    // house style here).
+    void render_pause_menu(int tab, bn::sprite_ptr& cursor_sprite,
+            bn::sprite_ptr room_sprites[game::map_room_count], bn::sprite_ptr seal_sprites[2],
+            int pause_blink_frame)
+    {
+        constexpr int tab_slot_x[pause_tab_count] = { -96, -48, 0, 48, 96 };
+        constexpr int tab_slot_y = -64;
+
+        bool on_map_tab = tab == map_tab_index;
+
+        for(int i = 0; i < game::map_room_count; ++i)
+        {
+            bool visible = on_map_tab && game::level::room_visited(i);
+            room_sprites[i].set_visible(visible);
+
+            if(visible)
+            {
+                int x;
+                int y;
+                map_marker_screen_position(i, x, y);
+                room_sprites[i].set_position(x, y);
+            }
+        }
+
+        // catacombs_16/17/18 are room_data indices 15/16/17 (alphabetical
+        // filename order — see room_data.h).
+        bool boss_sealed = ! game::bone_colossus_defeated();
+        bool seal_a_visible = on_map_tab && boss_sealed && game::level::room_visited(15);
+        bool seal_b_visible = on_map_tab && boss_sealed && game::level::room_visited(16);
+
+        seal_sprites[0].set_visible(seal_a_visible);
+        seal_sprites[1].set_visible(seal_b_visible);
+
+        if(seal_a_visible || seal_b_visible)
+        {
+            int x16;
+            int y16;
+            int x17;
+            int y17;
+            int x18;
+            int y18;
+            map_marker_screen_position(15, x16, y16);
+            map_marker_screen_position(16, x17, y17);
+            map_marker_screen_position(17, x18, y18);
+
+            if(seal_a_visible)
+            {
+                seal_sprites[0].set_position((x16 + x17) / 2, (y16 + y17) / 2);
+            }
+
+            if(seal_b_visible)
+            {
+                seal_sprites[1].set_position((x17 + x18) / 2, (y17 + y18) / 2);
+            }
+        }
+
+        if(on_map_tab)
+        {
+            int current = game::level::current_room_index();
+
+            if(current >= 0 && current < game::map_room_count)
+            {
+                int x;
+                int y;
+                map_marker_screen_position(current, x, y);
+                cursor_sprite.set_position(x, y);
+                cursor_sprite.set_visible((pause_blink_frame / 8) % 2 == 0);
+            }
+            else
+            {
+                cursor_sprite.set_visible(false);
+            }
+        }
+        else
+        {
+            cursor_sprite.set_position(tab_slot_x[tab], tab_slot_y);
+            cursor_sprite.set_visible(true);
+        }
+    }
+
+    // DEBUG ONLY — jump to any room by index without playing to it. Hold
+    // L+R+START together to toggle; LEFT/RIGHT picks a room (wrapping
+    // through every room in the generated table, not just the ones
+    // map_layout.h has a position for), A confirms, B cancels. Reuses the
+    // pause menu's map sprites (mutually exclusive with pause — you can't
+    // be in both at once) rather than adding a dedicated sprite pool.
+    // Should come out before shipping (see ROADMAP.md's M5 checklist) —
+    // it bypasses sealed doors and any other gating entirely on purpose.
+    void render_debug_warp_screen(int selected_room, bn::sprite_ptr& cursor_sprite,
+            bn::sprite_ptr room_sprites[game::map_room_count])
+    {
+        for(int i = 0; i < game::map_room_count; ++i)
+        {
+            room_sprites[i].set_visible(true);
+
+            int x;
+            int y;
+            map_marker_screen_position(i, x, y);
+            room_sprites[i].set_position(x, y);
+        }
+
+        if(selected_room >= 0 && selected_room < game::map_room_count)
+        {
+            int x;
+            int y;
+            map_marker_screen_position(selected_room, x, y);
+            cursor_sprite.set_position(x, y);
+            cursor_sprite.set_visible(true);
+        }
+        else
+        {
+            // A room this screen has no map position for (e.g. a sandbox
+            // room) — still selectable and warpable, just no cursor to show.
+            cursor_sprite.set_visible(false);
+        }
+    }
+
     // Grey-box slot picker (SPEC.md section 9: 3 slots) — a real title
     // screen with slot details (level, room, playtime) is a text-rendering
     // feature this project doesn't have yet (no sprite_text_generator use
@@ -460,6 +609,37 @@ int main()
         bn::sprite_items::bone.create_sprite(0, 0),
     };
 
+    // Pause menu / map screen (SPEC.md section 9). "bone" is the generic
+    // explored-room marker, "save_point" marks the 2 rooms that actually
+    // are save rooms (catacombs_03 = index 2, catacombs_13 = index 12),
+    // "hitbox" doubles as the tab cursor and the current-room marker, and
+    // "arrow" marks sealed doors — same reused-sprite reasoning as above.
+    bn::sprite_ptr map_room_sprites[game::map_room_count] = {
+        bn::sprite_items::bone.create_sprite(0, 0),       // catacombs_01
+        bn::sprite_items::bone.create_sprite(0, 0),       // catacombs_02
+        bn::sprite_items::save_point.create_sprite(0, 0), // catacombs_03 (save room)
+        bn::sprite_items::bone.create_sprite(0, 0),       // catacombs_04
+        bn::sprite_items::bone.create_sprite(0, 0),       // catacombs_05
+        bn::sprite_items::bone.create_sprite(0, 0),       // catacombs_06
+        bn::sprite_items::bone.create_sprite(0, 0),       // catacombs_07
+        bn::sprite_items::bone.create_sprite(0, 0),       // catacombs_08
+        bn::sprite_items::bone.create_sprite(0, 0),       // catacombs_09
+        bn::sprite_items::bone.create_sprite(0, 0),       // catacombs_10
+        bn::sprite_items::bone.create_sprite(0, 0),       // catacombs_11
+        bn::sprite_items::bone.create_sprite(0, 0),       // catacombs_12
+        bn::sprite_items::save_point.create_sprite(0, 0), // catacombs_13 (save room)
+        bn::sprite_items::bone.create_sprite(0, 0),       // catacombs_14
+        bn::sprite_items::bone.create_sprite(0, 0),       // catacombs_15
+        bn::sprite_items::bone.create_sprite(0, 0),       // catacombs_16
+        bn::sprite_items::bone.create_sprite(0, 0),       // catacombs_17 (boss arena)
+        bn::sprite_items::bone.create_sprite(0, 0),       // catacombs_18
+    };
+    bn::sprite_ptr pause_cursor_sprite = bn::sprite_items::hitbox.create_sprite(0, 0);
+    bn::sprite_ptr map_seal_sprites[2] = {
+        bn::sprite_items::arrow.create_sprite(0, 0),
+        bn::sprite_items::arrow.create_sprite(0, 0),
+    };
+
     for(bn::sprite_ptr& s : skeleton_sprites) { s.set_visible(false); }
     for(bn::sprite_ptr& s : bone_sprites) { s.set_visible(false); }
     for(bn::sprite_ptr& s : bat_sprites) { s.set_visible(false); }
@@ -473,6 +653,9 @@ int main()
     bone_colossus_sprite.set_visible(false);
     bone_colossus_hitbox_sprite.set_visible(false);
     for(bn::sprite_ptr& s : bone_colossus_rib_sprites) { s.set_visible(false); }
+    for(bn::sprite_ptr& s : map_room_sprites) { s.set_visible(false); }
+    pause_cursor_sprite.set_visible(false);
+    for(bn::sprite_ptr& s : map_seal_sprites) { s.set_visible(false); }
 
     bn::sprite_ptr save_point_sprite = bn::sprite_items::save_point.create_sprite(0, 0);
     save_point_sprite.set_visible(false);
@@ -525,8 +708,114 @@ int main()
     constexpr int save_flash_duration_frames = 24;
     int save_flash_frames = 0;
 
+    // SPEC.md section 9: 5-tab pause menu, shoulder buttons cycle. SELECT
+    // toggles it (not START — START already means "save" while standing
+    // in a save room, and reusing it here would make the same button do
+    // two different things depending on where the player happens to be
+    // standing).
+    bool paused = false;
+    int pause_tab = 0;
+    int pause_blink_frame = 0;
+
+    // DEBUG ONLY — see render_debug_warp_screen's comment.
+    bool debug_warp_active = false;
+    int debug_warp_room = 0;
+    bool debug_combo_prev_held = false;
+
     while(true)
     {
+        bool debug_combo_held = bn::keypad::held(bn::keypad::key_type::L)
+                && bn::keypad::held(bn::keypad::key_type::R)
+                && bn::keypad::held(bn::keypad::key_type::START);
+
+        if(debug_combo_held && ! debug_combo_prev_held && ! paused)
+        {
+            debug_warp_active = ! debug_warp_active;
+            debug_warp_room = game::level::current_room_index();
+
+            if(! debug_warp_active)
+            {
+                for(bn::sprite_ptr& s : map_room_sprites) { s.set_visible(false); }
+                pause_cursor_sprite.set_visible(false);
+            }
+        }
+
+        debug_combo_prev_held = debug_combo_held;
+
+        if(debug_warp_active)
+        {
+            if(bn::keypad::pressed(bn::keypad::key_type::LEFT))
+            {
+                debug_warp_room = (debug_warp_room + game::level::total_room_count() - 1)
+                        % game::level::total_room_count();
+            }
+            else if(bn::keypad::pressed(bn::keypad::key_type::RIGHT))
+            {
+                debug_warp_room = (debug_warp_room + 1) % game::level::total_room_count();
+            }
+
+            if(bn::keypad::pressed(bn::keypad::key_type::B))
+            {
+                debug_warp_active = false;
+                for(bn::sprite_ptr& s : map_room_sprites) { s.set_visible(false); }
+                pause_cursor_sprite.set_visible(false);
+            }
+            else if(bn::keypad::pressed(bn::keypad::key_type::A))
+            {
+                spawn = game::level::load_room(debug_warp_room);
+                player.x = spawn.x;
+                player.y = spawn.y;
+                player.velocity_x = 0;
+                player.velocity_y = 0;
+                player.grounded = true;
+                player.frames_since_grounded = 0;
+                game::spawn_room_enemies();
+                populate_room_tiles();
+                last_drawn_room = debug_warp_room;
+
+                debug_warp_active = false;
+                for(bn::sprite_ptr& s : map_room_sprites) { s.set_visible(false); }
+                pause_cursor_sprite.set_visible(false);
+            }
+            else
+            {
+                render_debug_warp_screen(debug_warp_room, pause_cursor_sprite, map_room_sprites);
+            }
+
+            bn::core::update();
+            continue;
+        }
+
+        if(bn::keypad::pressed(bn::keypad::key_type::SELECT))
+        {
+            paused = ! paused;
+
+            if(! paused)
+            {
+                for(bn::sprite_ptr& s : map_room_sprites) { s.set_visible(false); }
+                for(bn::sprite_ptr& s : map_seal_sprites) { s.set_visible(false); }
+                pause_cursor_sprite.set_visible(false);
+            }
+        }
+
+        if(paused)
+        {
+            if(bn::keypad::pressed(bn::keypad::key_type::L))
+            {
+                pause_tab = (pause_tab + pause_tab_count - 1) % pause_tab_count;
+            }
+            else if(bn::keypad::pressed(bn::keypad::key_type::R))
+            {
+                pause_tab = (pause_tab + 1) % pause_tab_count;
+            }
+
+            ++pause_blink_frame;
+            render_pause_menu(pause_tab, pause_cursor_sprite, map_room_sprites, map_seal_sprites,
+                    pause_blink_frame);
+            bn::core::update();
+            continue;
+        }
+
         game::input_state input;
         input.left = bn::keypad::held(bn::keypad::key_type::LEFT);
         input.right = bn::keypad::held(bn::keypad::key_type::RIGHT);
