@@ -178,6 +178,57 @@ what appeared to be someone else's screen. The ROM's build success and
 the door validator's clean pass are the verification that was
 completed; visual confirmation in mGBA was not.
 
+## 8. Screenshot capture shows the terminal/editor, not mGBA, because mGBA never has focus (fixed)
+
+**Problem:** Using the `game-development` skill's screenshot capture against
+a running mGBA instance returned an image of Claude Code's own
+terminal/editor window instead of mGBA -- even though mGBA was the intended
+target and was actually running with the ROM loaded. This is a different
+symptom from #7 above (#7 grabbed a completely different session's
+desktop; this grabs the *right* session, just the *wrong* window in it).
+Reproducible any time mGBA is launched from a background/automation
+process and captured without ever giving it focus first.
+
+**Cause:** screen capture on Windows grabs whatever window is actually
+painted as the current foreground window -- it has no notion of which
+window a script "means" to target. Launching mGBA as a child process does
+not make it the foreground window. Windows enforces a foreground-lock
+restriction that stops a background process from stealing focus from
+whatever currently has it (here, Claude Code's own terminal); a plain
+`SetForegroundWindow(hwnd)` call from an unrelated thread is silently
+downgraded (it flashes the taskbar icon instead of actually raising the
+window) rather than failing loudly, so this is easy to miss.
+
+**Fix:** force focus onto mGBA's window before capturing, using the
+standard technique for bypassing the foreground-lock restriction:
+
+1. Find mGBA's window handle (`FindWindow`/`EnumWindows`, matching its
+   window class or title -- mGBA's title includes the loaded ROM filename).
+2. `GetWindowThreadProcessId(GetForegroundWindow(), NULL)` to get the
+   thread ID that currently owns foreground focus.
+3. `GetWindowThreadProcessId(hwndMGBA, NULL)` to get the thread ID that
+   owns mGBA's window.
+4. `AttachThreadInput(foregroundThreadId, mgbaThreadId, TRUE)` -- merges
+   the two threads' input state. This is the load-bearing step: without
+   it, step 5 is the silently-downgraded no-op described above.
+5. `ShowWindow(hwndMGBA, SW_RESTORE)` (in case it's minimized), then
+   `SetForegroundWindow(hwndMGBA)` and/or `BringWindowToTop(hwndMGBA)`.
+6. `AttachThreadInput(foregroundThreadId, mgbaThreadId, FALSE)` --
+   detach immediately afterward. Leaving threads attached causes
+   unrelated focus/input glitches elsewhere in the system.
+7. Only capture after this -- taking the screenshot in the same instant
+   as the focus change can race the window manager's repaint, so give it
+   a frame or two before capturing.
+
+**Lesson:** any screenshot tool driving an external GUI app from a
+background process must force focus explicitly first -- launching the
+process is not enough, and a bare `SetForegroundWindow` call looks like
+it should work but is silently defeated by Windows' foreground lock
+unless paired with `AttachThreadInput`. To reproduce: launch mGBA from a
+background/automation process (not by clicking it yourself) and capture
+immediately with no focus step -- the capture shows whatever window the
+calling process's thread currently has focus in, not mGBA.
+
 ## Net result
 
 None of steps 1-6 required installing anything or touching files outside
