@@ -62,8 +62,8 @@
                         {
                          "name":"target_x",
                          "type":"int",
-                         "value":16
-                        }, 
+                         "value":40
+                        },
                         {
                          "name":"target_y",
                          "type":"int",

@@ -144,4 +144,46 @@ namespace game::difficulty
     constexpr fixed rival_attack_hitbox_half_height = to_fixed(4);
     constexpr int rival_combo_window_frames = 20; // time after a hit to chain the next one
     constexpr int rival_damage_percent = 60;      // "Damage per hit: Low" vs the Hunter's 100%
+
+    // --- M3 enemies (enemies.md) ---
+
+    // Bone Pillar — stationary shooter. Stats locked by enemies.md.
+    constexpr int bone_pillar_max_hp = 30;
+    constexpr int bone_pillar_damage = 12;
+    constexpr int bone_pillar_defense = 14;
+    constexpr int bone_pillar_exp_reward = 15;
+    constexpr int bone_pillar_fire_interval_frames = 100; // "fires... every 100 frames"
+
+    // Fireball: enemies.md gives no speed/lifetime — first draft, tune by
+    // feel, a straight (zero-gravity) shot rather than an arc.
+    constexpr fixed bone_pillar_fireball_speed = to_fixed(1) + fixed_one / 2; // 1.5 px/frame
+    constexpr int bone_pillar_fireball_lifetime_frames = 90;
+
+    // Fleaman — jumper. Stats locked by enemies.md.
+    constexpr int fleaman_max_hp = 12;
+    constexpr int fleaman_damage = 9;
+    constexpr int fleaman_defense = 2;
+    constexpr int fleaman_exp_reward = 7;
+    constexpr fixed fleaman_speed = (player_run_speed * 15) / 10; // "Speed 1.5"
+    constexpr int fleaman_hop_interval_min_frames = 30;
+    constexpr int fleaman_hop_interval_max_frames = 60;
+
+    // Hop height: enemies.md gives no exact value — first draft, tune by
+    // feel, reusing the player's own gravity so hops land cleanly.
+    constexpr fixed fleaman_gravity = player_gravity;
+    constexpr fixed fleaman_hop_velocity_min = -(to_fixed(2));
+    constexpr fixed fleaman_hop_velocity_max = -(to_fixed(4));
+
+    // Medusa Head — continuous-spawn flyer. Stats locked by enemies.md.
+    constexpr int medusa_head_max_hp = 8;
+    constexpr int medusa_head_damage = 6;
+    constexpr int medusa_head_defense = 0;
+    constexpr int medusa_head_exp_reward = 3;
+    constexpr fixed medusa_head_speed = to_fixed(1); // "Speed 1.0"
+
+    // Sine wave + respawn loop: enemies.md says "spawns continuously from
+    // screen edge" but gives no wave shape or cooldown — first draft.
+    constexpr fixed medusa_head_wave_amplitude = to_fixed(24);
+    constexpr int medusa_head_wave_period_frames = 60;
+    constexpr int medusa_head_respawn_cooldown_frames = 45;
 }

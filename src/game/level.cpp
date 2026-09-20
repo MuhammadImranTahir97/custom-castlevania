@@ -7,6 +7,12 @@ namespace game::level
     namespace
     {
         int active_room_index = 0;
+        fixed camera_x_value = 0;
+        fixed camera_y_value = 0;
+
+        // The arrival door in the active room, suppressed until the
+        // caller's hitbox clears it (see try_cross_door). -1 means none.
+        int suppressed_door_index = -1;
 
         const room_data::room_def& active_room()
         {
@@ -14,12 +20,52 @@ namespace game::level
         }
     }
 
+    int room_half_width()
+    {
+        return active_room().half_width;
+    }
+
+    int room_half_height()
+    {
+        return active_room().half_height;
+    }
+
+    void update_camera(fixed focus_x, fixed focus_y)
+    {
+        int max_x_offset = room_half_width() - screen_half_width;
+        int max_y_offset = room_half_height() - screen_half_height;
+
+        camera_x_value = max_x_offset <= 0 ? 0 : focus_x;
+        camera_y_value = max_y_offset <= 0 ? 0 : focus_y;
+
+        fixed max_x = to_fixed(max_x_offset);
+        fixed max_y = to_fixed(max_y_offset);
+
+        if(camera_x_value < -max_x) camera_x_value = -max_x;
+        if(camera_x_value > max_x) camera_x_value = max_x;
+        if(camera_y_value < -max_y) camera_y_value = -max_y;
+        if(camera_y_value > max_y) camera_y_value = max_y;
+    }
+
+    fixed camera_x()
+    {
+        return camera_x_value;
+    }
+
+    fixed camera_y()
+    {
+        return camera_y_value;
+    }
+
     spawn_point load_room(int room_index)
     {
         active_room_index = room_index;
+        suppressed_door_index = -1;
 
         const room_data::room_def& room = active_room();
-        return { to_fixed(room.spawn_x), to_fixed(room.spawn_y) };
+        spawn_point spawn{ to_fixed(room.spawn_x), to_fixed(room.spawn_y) };
+        update_camera(spawn.x, spawn.y);
+        return spawn;
     }
 
     int current_room_index()
@@ -57,7 +103,7 @@ namespace game::level
     enemy_spawn_view room_enemy_spawn(int index)
     {
         const room_data::enemy_spawn_def& s = active_room().enemy_spawns[index];
-        return { s.type, s.x, s.y };
+        return { s.type, s.x, s.y, s.facing };
     }
 
     fixed ground_top_y_at(fixed x)
@@ -81,23 +127,63 @@ namespace game::level
         return best;
     }
 
-    bool try_cross_door(fixed x, fixed y, spawn_point& out_spawn)
+    namespace
     {
-        const room_data::room_def& room = active_room();
-
-        for(int i = 0; i < room.door_count; ++i)
+        bool box_overlaps_door(fixed x, fixed y, fixed half_width, fixed half_height,
+                const room_data::door_def& d)
         {
-            const room_data::door_def& d = room.doors[i];
             fixed left = to_fixed(d.x);
             fixed right = to_fixed(d.x + d.width);
             fixed top = to_fixed(d.y);
             fixed bottom = to_fixed(d.y + d.height);
 
-            if(x >= left && x <= right && y >= top && y <= bottom)
+            return x + half_width >= left && x - half_width <= right
+                    && y + half_height >= top && y - half_height <= bottom;
+        }
+    }
+
+    bool try_cross_door(fixed x, fixed y, fixed half_width, fixed half_height, spawn_point& out_spawn)
+    {
+        const room_data::room_def& room = active_room();
+
+        // The suppressed door (if any) stays suppressed only as long as the
+        // caller is still inside it. Once they've walked/fallen clear, it's
+        // a door again like any other.
+        if(suppressed_door_index >= 0
+                && ! box_overlaps_door(x, y, half_width, half_height, room.doors[suppressed_door_index]))
+        {
+            suppressed_door_index = -1;
+        }
+
+        for(int i = 0; i < room.door_count; ++i)
+        {
+            if(i == suppressed_door_index)
             {
+                continue;
+            }
+
+            if(box_overlaps_door(x, y, half_width, half_height, room.doors[i]))
+            {
+                const room_data::door_def& d = room.doors[i];
                 out_spawn.x = to_fixed(d.target_x);
                 out_spawn.y = to_fixed(d.target_y);
                 load_room(d.target_room);
+
+                // If the spot we just placed the caller at overlaps a door
+                // in the new room (typically the reciprocal one), suppress
+                // that door so this same crossing doesn't immediately fire
+                // again next frame.
+                const room_data::room_def& new_room = active_room();
+
+                for(int j = 0; j < new_room.door_count; ++j)
+                {
+                    if(box_overlaps_door(out_spawn.x, out_spawn.y, half_width, half_height, new_room.doors[j]))
+                    {
+                        suppressed_door_index = j;
+                        break;
+                    }
+                }
+
                 return true;
             }
         }

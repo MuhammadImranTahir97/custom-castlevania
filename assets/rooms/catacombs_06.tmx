@@ -10,8 +10,8 @@
    <properties>
     <property name="kind" value="door"/>
     <property name="target_room" value="catacombs_05"/>
-    <property name="target_x" type="int" value="60"/>
-    <property name="target_y" type="int" value="24"/>
+    <property name="target_x" type="int" value="80"/>
+    <property name="target_y" type="int" value="56"/>
    </properties>
   </object>
   <object id="3" name="door_to_catacombs_07" x="224" y="0" width="16" height="160">

@@ -14,7 +14,7 @@
     <property name="target_y" type="int" value="80"/>
    </properties>
   </object>
-  <object id="3" name="spawn" x="100" y="120">
+  <object id="3" name="spawn" x="150" y="120">
    <properties>
     <property name="kind" value="spawn"/>
    </properties>

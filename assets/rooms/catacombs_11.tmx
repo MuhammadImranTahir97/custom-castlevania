@@ -41,8 +41,8 @@
    <properties>
     <property name="kind" value="door"/>
     <property name="target_room" value="catacombs_14"/>
-    <property name="target_x" type="int" value="120"/>
-    <property name="target_y" type="int" value="24"/>
+    <property name="target_x" type="int" value="60"/>
+    <property name="target_y" type="int" value="56"/>
    </properties>
   </object>
   <object id="8" name="spawn" x="20" y="120">

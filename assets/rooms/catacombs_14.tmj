@@ -170,8 +170,8 @@
                         {
                          "name":"target_x",
                          "type":"int",
-                         "value":150
-                        }, 
+                         "value":188
+                        },
                         {
                          "name":"target_y",
                          "type":"int",

@@ -42,7 +42,7 @@ namespace game
     {
         // A pit with nothing underneath it (e.g. catacombs_02) has no floor
         // to catch a missed jump — falling out of the room counts as a death.
-        bool fell_out_of_bounds = player.y > to_fixed(level::screen_half_height + 40);
+        bool fell_out_of_bounds = player.y > to_fixed(level::room_half_height() + 40);
 
         // No permadeath, no lost items (SPEC.md) — just send the player back
         // to their last save room, fully healed. Death/respawn is otherwise
@@ -55,7 +55,8 @@ namespace game
 
         level::spawn_point target{};
 
-        if(level::try_cross_door(player.x, player.y, target))
+        if(level::try_cross_door(player.x, player.y,
+                to_fixed(player_half_width), to_fixed(player_half_height), target))
         {
             player.x = target.x;
             player.y = target.y;
@@ -71,5 +72,7 @@ namespace game
             set_checkpoint(level::current_room_index(), room_spawn.x, room_spawn.y);
             restore_full(player);
         }
+
+        level::update_camera(player.x, player.y);
     }
 }

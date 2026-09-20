@@ -7,8 +7,15 @@ namespace game
 {
     namespace
     {
-        constexpr fixed min_x = to_fixed(-level::screen_half_width + player_half_width);
-        constexpr fixed max_x = to_fixed(level::screen_half_width - player_half_width);
+        fixed min_x()
+        {
+            return to_fixed(-level::room_half_width() + player_half_width);
+        }
+
+        fixed max_x()
+        {
+            return to_fixed(level::room_half_width() - player_half_width);
+        }
 
         fixed grounded_y_at(fixed x)
         {
@@ -163,13 +170,13 @@ namespace game
             player.x += player.velocity_x;
             player.y += player.velocity_y;
 
-            if(player.x < min_x)
+            if(player.x < min_x())
             {
-                player.x = min_x;
+                player.x = min_x();
             }
-            else if(player.x > max_x)
+            else if(player.x > max_x())
             {
-                player.x = max_x;
+                player.x = max_x();
             }
 
             fixed ground_y = grounded_y_at(player.x);
@@ -342,13 +349,13 @@ namespace game
             player.velocity_x = player.facing * t.dodge_velocity;
             player.x += player.velocity_x;
 
-            if(player.x < min_x)
+            if(player.x < min_x())
             {
-                player.x = min_x;
+                player.x = min_x();
             }
-            else if(player.x > max_x)
+            else if(player.x > max_x())
             {
-                player.x = max_x;
+                player.x = max_x();
             }
 
             // A roll/dash hugs the ground it crosses rather than falling mid-way.

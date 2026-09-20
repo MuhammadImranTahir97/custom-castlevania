@@ -63,7 +63,7 @@
    <properties>
     <property name="kind" value="door"/>
     <property name="target_room" value="catacombs_06"/>
-    <property name="target_x" type="int" value="16"/>
+    <property name="target_x" type="int" value="160"/>
     <property name="target_y" type="int" value="120"/>
    </properties>
   </object>

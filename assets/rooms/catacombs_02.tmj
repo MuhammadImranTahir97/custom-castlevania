@@ -110,6 +110,39 @@
                  "y":0
                 }, 
                 {
+                 "height":24,
+                 "id":10,
+                 "name":"door_to_catacombs_09",
+                 "opacity":1,
+                 "properties":[
+                        {
+                         "name":"kind",
+                         "type":"string",
+                         "value":"door"
+                        }, 
+                        {
+                         "name":"target_room",
+                         "type":"string",
+                         "value":"catacombs_09"
+                        }, 
+                        {
+                         "name":"target_x",
+                         "type":"int",
+                         "value":20
+                        }, 
+                        {
+                         "name":"target_y",
+                         "type":"int",
+                         "value":120
+                        }],
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":40,
+                 "x":120,
+                 "y":136
+                }, 
+                {
                  "height":0,
                  "id":5,
                  "name":"spawn",
@@ -231,7 +264,7 @@
          "y":0
         }],
  "nextlayerid":2,
- "nextobjectid":10,
+ "nextobjectid":11,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.12.2",

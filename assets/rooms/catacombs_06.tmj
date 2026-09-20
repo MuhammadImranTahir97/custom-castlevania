@@ -44,12 +44,12 @@
                         {
                          "name":"target_x",
                          "type":"int",
-                         "value":60
-                        }, 
+                         "value":80
+                        },
                         {
                          "name":"target_y",
                          "type":"int",
-                         "value":24
+                         "value":56
                         }],
                  "rotation":0,
                  "type":"",

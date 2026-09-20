@@ -174,4 +174,73 @@ namespace game
 
     void init_zombie(zombie_state& zombie, fixed spawn_x);
     void update_zombie(zombie_state& zombie);
+
+    // --- Bone Pillar — stationary shooter (enemies.md) ---
+    // Can't decide its own facing (it never moves) — the room authors it,
+    // via level::enemy_spawn_view::facing.
+
+    constexpr int bone_pillar_half_width = 8;
+    constexpr int bone_pillar_half_height = 8;
+
+    struct bone_pillar_state
+    {
+        fixed x = 0;
+        fixed y = 0;
+        int facing = -1;
+        int hp = 0;
+        bool alive = true;
+        bool prev_attack_active = false;
+        int fire_timer = 0;
+        arc_projectile fireball;
+    };
+
+    void init_bone_pillar(bone_pillar_state& pillar, fixed spawn_x, fixed spawn_y, int facing);
+    void update_bone_pillar(bone_pillar_state& pillar);
+
+    // --- Fleaman — jumper (enemies.md) ---
+
+    constexpr int fleaman_half_width = 8;
+    constexpr int fleaman_half_height = 8;
+
+    struct fleaman_state
+    {
+        fixed x = 0;
+        fixed y = 0;
+        fixed velocity_y = 0;
+        int facing = -1;
+        int hp = 0;
+        bool alive = true;
+        bool prev_attack_active = false;
+        bool grounded = true;
+        int hop_timer = 0; // frames left grounded before the next random hop
+    };
+
+    void init_fleaman(fleaman_state& fleaman, fixed spawn_x);
+    void update_fleaman(fleaman_state& fleaman);
+
+    // --- Medusa Head — continuous-spawn flyer (enemies.md) ---
+    // Unlike other enemies, killing (or losing track of) one doesn't remove
+    // it permanently: it resets to its spawn edge after a cooldown and
+    // flies again, like the source game's endless Medusa Head volleys.
+    // Spawn edge/direction is authored, via level::enemy_spawn_view::facing.
+
+    constexpr int medusa_head_half_width = 8;
+    constexpr int medusa_head_half_height = 8;
+
+    struct medusa_head_state
+    {
+        fixed x = 0;
+        fixed y = 0;
+        fixed origin_x = 0;
+        fixed origin_y = 0;
+        int facing = -1;
+        int hp = 0;
+        bool alive = true;
+        bool prev_attack_active = false;
+        int wave_timer = 0;
+        int respawn_timer = 0; // >0 while waiting to respawn after death/off-screen
+    };
+
+    void init_medusa_head(medusa_head_state& medusa, fixed spawn_x, fixed spawn_y, int facing);
+    void update_medusa_head(medusa_head_state& medusa);
 }

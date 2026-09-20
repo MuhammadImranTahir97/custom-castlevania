@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="8" tileheight="8" infinite="0" nextlayerid="2" nextobjectid="10">
+<map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="8" tileheight="8" infinite="0" nextlayerid="2" nextobjectid="11">
  <objectgroup id="1" name="objects">
   <object id="1" name="floor_left" x="0" y="128" width="120" height="32">
    <properties>
@@ -23,6 +23,14 @@
    <properties>
     <property name="kind" value="door"/>
     <property name="target_room" value="catacombs_03"/>
+    <property name="target_x" type="int" value="20"/>
+    <property name="target_y" type="int" value="120"/>
+   </properties>
+  </object>
+  <object id="10" name="door_to_catacombs_09" x="120" y="136" width="40" height="24">
+   <properties>
+    <property name="kind" value="door"/>
+    <property name="target_room" value="catacombs_09"/>
     <property name="target_x" type="int" value="20"/>
     <property name="target_y" type="int" value="120"/>
    </properties>

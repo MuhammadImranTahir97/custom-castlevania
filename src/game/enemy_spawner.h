@@ -35,4 +35,13 @@ namespace game
 
     int active_zombie_count();
     const zombie_state& active_zombie(int index);
+
+    int active_bone_pillar_count();
+    const bone_pillar_state& active_bone_pillar(int index);
+
+    int active_fleaman_count();
+    const fleaman_state& active_fleaman(int index);
+
+    int active_medusa_head_count();
+    const medusa_head_state& active_medusa_head(int index);
 }

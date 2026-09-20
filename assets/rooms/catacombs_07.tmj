@@ -128,8 +128,8 @@
                         {
                          "name":"target_x",
                          "type":"int",
-                         "value":120
-                        }, 
+                         "value":150
+                        },
                         {
                          "name":"target_y",
                          "type":"int",
@@ -141,7 +141,7 @@
                  "width":60,
                  "x":100,
                  "y":0
-                }, 
+                },
                 {
                  "height":0,
                  "id":6,

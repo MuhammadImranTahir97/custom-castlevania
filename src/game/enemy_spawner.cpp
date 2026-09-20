@@ -12,6 +12,9 @@ namespace game
         constexpr int enemy_type_bat = 1;
         constexpr int enemy_type_archer = 2;
         constexpr int enemy_type_zombie = 3;
+        constexpr int enemy_type_bone_pillar = 4;
+        constexpr int enemy_type_fleaman = 5;
+        constexpr int enemy_type_medusa_head = 6;
 
         skeleton_state skeletons[max_enemies_per_type];
         int skeleton_active_count = 0;
@@ -24,6 +27,15 @@ namespace game
 
         zombie_state zombies[max_enemies_per_type];
         int zombie_active_count = 0;
+
+        bone_pillar_state bone_pillars[max_enemies_per_type];
+        int bone_pillar_active_count = 0;
+
+        fleaman_state fleamen[max_enemies_per_type];
+        int fleaman_active_count = 0;
+
+        medusa_head_state medusa_heads[max_enemies_per_type];
+        int medusa_head_active_count = 0;
     }
 
     void spawn_room_enemies()
@@ -32,6 +44,9 @@ namespace game
         bat_active_count = 0;
         archer_active_count = 0;
         zombie_active_count = 0;
+        bone_pillar_active_count = 0;
+        fleaman_active_count = 0;
+        medusa_head_active_count = 0;
 
         int count = level::room_enemy_spawn_count();
 
@@ -73,6 +88,32 @@ namespace game
                 }
                 break;
 
+            case enemy_type_bone_pillar:
+                if(bone_pillar_active_count < max_enemies_per_type)
+                {
+                    init_bone_pillar(bone_pillars[bone_pillar_active_count], to_fixed(spawn.x),
+                            to_fixed(spawn.y), spawn.facing);
+                    ++bone_pillar_active_count;
+                }
+                break;
+
+            case enemy_type_fleaman:
+                if(fleaman_active_count < max_enemies_per_type)
+                {
+                    init_fleaman(fleamen[fleaman_active_count], to_fixed(spawn.x));
+                    ++fleaman_active_count;
+                }
+                break;
+
+            case enemy_type_medusa_head:
+                if(medusa_head_active_count < max_enemies_per_type)
+                {
+                    init_medusa_head(medusa_heads[medusa_head_active_count], to_fixed(spawn.x),
+                            to_fixed(spawn.y), spawn.facing);
+                    ++medusa_head_active_count;
+                }
+                break;
+
             default:
                 break;
             }
@@ -99,6 +140,21 @@ namespace game
         for(int i = 0; i < zombie_active_count; ++i)
         {
             update_zombie(zombies[i]);
+        }
+
+        for(int i = 0; i < bone_pillar_active_count; ++i)
+        {
+            update_bone_pillar(bone_pillars[i]);
+        }
+
+        for(int i = 0; i < fleaman_active_count; ++i)
+        {
+            update_fleaman(fleamen[i]);
+        }
+
+        for(int i = 0; i < medusa_head_active_count; ++i)
+        {
+            update_medusa_head(medusa_heads[i]);
         }
     }
 
@@ -140,6 +196,37 @@ namespace game
                 grant_exp(player, difficulty::zombie_exp_reward);
             }
         }
+
+        for(int i = 0; i < bone_pillar_active_count; ++i)
+        {
+            if(apply_whip_to_enemy(bone_pillars[i], bone_pillar_half_width, bone_pillar_half_height,
+                    difficulty::bone_pillar_defense, power, hitbox))
+            {
+                grant_exp(player, difficulty::bone_pillar_exp_reward);
+            }
+        }
+
+        for(int i = 0; i < fleaman_active_count; ++i)
+        {
+            if(apply_whip_to_enemy(fleamen[i], fleaman_half_width, fleaman_half_height,
+                    difficulty::fleaman_defense, power, hitbox))
+            {
+                grant_exp(player, difficulty::fleaman_exp_reward);
+            }
+        }
+
+        for(int i = 0; i < medusa_head_active_count; ++i)
+        {
+            if(apply_whip_to_enemy(medusa_heads[i], medusa_head_half_width, medusa_head_half_height,
+                    difficulty::medusa_head_defense, power, hitbox))
+            {
+                grant_exp(player, difficulty::medusa_head_exp_reward);
+
+                // Continuous spawner (enemies.md) — a kill isn't permanent,
+                // it just resets to its spawn edge after this cooldown.
+                medusa_heads[i].respawn_timer = difficulty::medusa_head_respawn_cooldown_frames;
+            }
+        }
     }
 
     void apply_enemy_contact_to_player(player_state& player)
@@ -169,6 +256,26 @@ namespace game
         {
             apply_enemy_contact(zombies[i], zombie_half_width, zombie_half_height,
                     difficulty::zombie_damage, player);
+        }
+
+        for(int i = 0; i < bone_pillar_active_count; ++i)
+        {
+            apply_enemy_contact(bone_pillars[i], bone_pillar_half_width, bone_pillar_half_height,
+                    difficulty::bone_pillar_damage, player);
+            apply_projectile_contact(bone_pillars[i].fireball, projectile_half_width, projectile_half_height,
+                    difficulty::bone_pillar_damage, player);
+        }
+
+        for(int i = 0; i < fleaman_active_count; ++i)
+        {
+            apply_enemy_contact(fleamen[i], fleaman_half_width, fleaman_half_height,
+                    difficulty::fleaman_damage, player);
+        }
+
+        for(int i = 0; i < medusa_head_active_count; ++i)
+        {
+            apply_enemy_contact(medusa_heads[i], medusa_head_half_width, medusa_head_half_height,
+                    difficulty::medusa_head_damage, player);
         }
     }
 
@@ -210,5 +317,35 @@ namespace game
     const zombie_state& active_zombie(int index)
     {
         return zombies[index];
+    }
+
+    int active_bone_pillar_count()
+    {
+        return bone_pillar_active_count;
+    }
+
+    const bone_pillar_state& active_bone_pillar(int index)
+    {
+        return bone_pillars[index];
+    }
+
+    int active_fleaman_count()
+    {
+        return fleaman_active_count;
+    }
+
+    const fleaman_state& active_fleaman(int index)
+    {
+        return fleamen[index];
+    }
+
+    int active_medusa_head_count()
+    {
+        return medusa_head_active_count;
+    }
+
+    const medusa_head_state& active_medusa_head(int index)
+    {
+        return medusa_heads[index];
     }
 }

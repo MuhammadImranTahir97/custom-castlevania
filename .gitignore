@@ -6,3 +6,5 @@ build/
 generated/
 tools/butano/
 tools/_installers/
+tools/__pycache__/
+.env

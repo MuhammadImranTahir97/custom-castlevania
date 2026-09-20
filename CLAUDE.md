@@ -7,10 +7,35 @@ Read this before writing any code. Read `SPEC.md` for the design.
 ## Project
 
 A Metroidvania for **real Game Boy Advance hardware**.
-Engine: **Butano** (C++17) on **devkitARM**. Tested in **mGBA**.
+Engine: **Butano** (C++17) on **Wonderful Toolchain**. Tested in **mGBA**.
 
 This is not a browser game, not a PC game, not an emulator-only target.
 It must build to a `.gba` ROM that runs on hardware.
+
+---
+
+## Build environment
+
+The Makefile needs exactly one of these set: `WONDERFUL_TOOLCHAIN` (this
+project's toolchain — a Wonderful Toolchain install root, the directory
+containing `bin/`, `toolchain/`, `target/`) or `DEVKITARM` (see
+`tools/butano/butano/butano.mak`'s autodetection). Without one of these,
+`make` fails immediately with `"DEVKITARM and WONDERFUL_TOOLCHAIN not
+found"`.
+
+Don't rely on exporting this in your shell profile — it's easy to forget
+and the error only shows up the next time you open a new shell. Instead:
+
+1. Copy `.env.example` to `.env` (gitignored, machine-specific).
+2. Set `WONDERFUL_TOOLCHAIN=<path-to-your-install>` in it.
+
+The root `Makefile` loads `.env` itself (`-include .env` + `export`), so
+plain `make` picks up the toolchain with no shell setup required.
+
+If `make` reports missing DLLs (e.g. `STATUS_DLL_NOT_FOUND` /
+`api-ms-win-crt-*.dll`) when actually invoking the compiler, that's a
+Windows UCRT/redistributable problem on the machine, not a toolchain or
+project config issue — the toolchain path itself was resolving correctly.
 
 ---
 

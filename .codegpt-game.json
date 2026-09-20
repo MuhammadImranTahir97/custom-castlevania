@@ -1,0 +1,9 @@
+{
+  "name": "cot-hack",
+  "engine": "custom",
+  "build": { "cmd": "make" },
+  "install": [],
+  "launch": { "cmd": "C:/Program Files/mGBA/mGBA.exe", "args": ["cot-hack.gba"] },
+  "log": { "format": "text", "stdout": true, "paths": [] },
+  "window": "mGBA"
+}

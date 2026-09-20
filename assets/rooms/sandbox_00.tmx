@@ -15,7 +15,7 @@
    <properties>
     <property name="kind" value="door"/>
     <property name="target_room" value="sandbox_01"/>
-    <property name="target_x" type="int" value="16"/>
+    <property name="target_x" type="int" value="40"/>
     <property name="target_y" type="int" value="120"/>
    </properties>
   </object>

@@ -10,7 +10,7 @@
    <properties>
     <property name="kind" value="door"/>
     <property name="target_room" value="catacombs_02"/>
-    <property name="target_x" type="int" value="16"/>
+    <property name="target_x" type="int" value="60"/>
     <property name="target_y" type="int" value="120"/>
    </properties>
   </object>
