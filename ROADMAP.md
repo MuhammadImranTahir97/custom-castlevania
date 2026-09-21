@@ -92,7 +92,7 @@ better? If one dominates, fix the balance now — it only gets harder later.
 - [x] Save rooms restoring HP/MP
 - [ ] Pause menu — all 5 tabs
 - [ ] Map screen with sealed-door markers
-- [ ] **Arcana working** — 2 Action × 3 Attribute cards (6 combos)
+- [x] **Arcana working** — 2 Action × 3 Attribute cards (6 combos)
 - [ ] First relic (Dash Boots) and one real gate it opens
 - [x] Death and respawn
 
