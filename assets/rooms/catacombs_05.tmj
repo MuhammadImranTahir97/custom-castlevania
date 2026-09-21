@@ -245,21 +245,26 @@
                          "name":"kind",
                          "type":"string",
                          "value":"door"
-                        }, 
+                        },
                         {
                          "name":"target_room",
                          "type":"string",
                          "value":"catacombs_10"
-                        }, 
+                        },
                         {
                          "name":"target_x",
                          "type":"int",
                          "value":20
-                        }, 
+                        },
                         {
                          "name":"target_y",
                          "type":"int",
                          "value":120
+                        },
+                        {
+                         "name":"requires",
+                         "type":"string",
+                         "value":"double"
                         }],
                  "rotation":0,
                  "type":"",

@@ -68,6 +68,7 @@
     <property name="target_room" value="catacombs_10"/>
     <property name="target_x" type="int" value="20"/>
     <property name="target_y" type="int" value="120"/>
+    <property name="requires" value="double"/>
    </properties>
   </object>
   <object id="14" name="spawn" x="20" y="280">

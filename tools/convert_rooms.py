@@ -13,7 +13,11 @@ Tiled itself, so the ROM build doesn't require Tiled to be installed.
 
 Room schema (one "objects" object layer per map; see assets/rooms/README.md):
   - a "kind"=platform rectangle per flat-topped platform
-  - a "kind"=door rectangle with target_room/target_x/target_y properties
+  - a "kind"=door rectangle with target_room/target_x/target_y properties,
+    and an optional "requires" property (rooms.md's gate-design rules)
+    declaring what the gate is *supposed* to need -- see
+    tools/validate_gates.py, which checks that against the door's actual
+    geometry and the real jump physics for every character/relic combo
   - a "kind"=spawn point, the room's default spawn position
   - a "kind"=enemy point per enemy, with an "enemy_type" property (one
     of: skeleton, bat, archer, zombie, bone_pillar, fleaman, medusa_head,
@@ -124,6 +128,16 @@ def load_room(path):
                     # dimensions are known.
                     'target_x_raw': props['target_x'],
                     'target_y_raw': props['target_y'],
+                    # Optional. Declares what a gated door is *supposed* to
+                    # require -- a '+'-separated list of relic and/or
+                    # character names (e.g. "double", "rival"), checked by
+                    # tools/validate_gates.py against the door's actual
+                    # geometry. Not read by the game itself (the engine
+                    # doesn't need to know a gate's *intent*, only its
+                    # geometry) — never emitted into the generated room
+                    # data, so it's absent from write_header/write_source
+                    # on purpose, not an oversight.
+                    'requires': props.get('requires'),
                 })
             elif kind == 'spawn':
                 spawn = {'x': to_game_x(obj['x']), 'y': to_game_y(obj['y'])}

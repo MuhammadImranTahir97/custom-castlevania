@@ -143,6 +143,16 @@ Linear spine with locked side-rooms in every area to return to later.
      design tool here — they just weren't available at all before her
      unlock point, which is the thing to get right first.
 
+   **Don't check this by hand past the first gate or two.** 2 characters
+   x 8 relics is too many combinations to reason through reliably every
+   time a gate's geometry changes — catacombs_05's gate has already been
+   tuned wrong twice this project (see troubleshooting/build-environment.md).
+   Declare a gated door's intended requirement as a `requires` property
+   (e.g. `requires: double`, the room schema convert_rooms.py documents),
+   and run `tools/validate_gates.py` — it simulates the actual jump
+   physics for every character/relic combination and flags any gate the
+   wrong one can pass, or that the right one can't.
+
 ---
 
 # AREA 2 — CATACOMBS *(18 rooms)*
