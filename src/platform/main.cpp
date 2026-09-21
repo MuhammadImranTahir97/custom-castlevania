@@ -1,11 +1,19 @@
+#include "bn_bg_tiles.h"
 #include "bn_core.h"
 #include "bn_keypad.h"
+#include "bn_regular_bg_item.h"
+#include "bn_regular_bg_map_cell.h"
+#include "bn_regular_bg_map_ptr.h"
+#include "bn_regular_bg_ptr.h"
+#include "bn_size.h"
 #include "bn_sprite_ptr.h"
 
 #include "bn_sprite_items_player.h"
 #include "bn_sprite_items_rival.h"
 #include "bn_sprite_items_ground.h"
 #include "bn_sprite_items_hitbox.h"
+#include "bn_regular_bg_tiles_items_ground_bg.h"
+#include "bn_bg_palette_items_ground_bg_palette.h"
 #include "bn_sprite_items_skeleton.h"
 #include "bn_sprite_items_bone.h"
 #include "bn_sprite_items_bat.h"
@@ -48,63 +56,109 @@ namespace
         set_world_pixel_position(sprite, game::to_pixels(world_x), game::to_pixels(world_y));
     }
 
-    // Placeholder-only room renderer: every platform is sliced into 64px
-    // ground tiles from one shared pool, sized generously enough to cover
-    // the biggest room (see assets/rooms/*.tmj). Real tile-based room art
-    // replaces this later (see ROADMAP.md M4c).
-    constexpr int tile_pool_size = 20;
+    // Placeholder-only room terrain, drawn on a background tilemap rather
+    // than as sprites (troubleshooting/build-environment.md entry #14):
+    // level geometry never moves or animates, so it belongs on a BG layer,
+    // which costs no sprite budget at all, rather than competing with
+    // enemies/projectiles/effects for the 128-sprite hardware limit the
+    // way a pool of "ground" sprites used to. Real tile-based room art
+    // replaces this look later (see ROADMAP.md M4c); only how it's drawn
+    // changes here, not the collision it's drawn to match (still
+    // level::room_platform, untouched).
+    //
+    // 96x96 tiles (768x768px) comfortably covers every current room (up
+    // to 2 screens in either dimension -- 60x20 tiles for a "2x1" room
+    // like catacombs_04, or 30x40 for a "1x2" like catacombs_05) with
+    // margin, centered on world (0,0) the same way rooms themselves are.
+    // regular_bg_map_item requires both dimensions to be multiples of 32
+    // (hardware screen-block size), hence 96 rather than an exact-fit
+    // number in either direction.
+    //
+    // Deliberately over the >64 threshold that makes a map "big"
+    // (regular_bg_map_item::_big_dimensions) rather than landing on
+    // exactly 64x64. Not because 64x64's non-flat, 4-screen-block cell
+    // layout (see regular_bg_map_item.h's flat_layout) turned out to be
+    // the actual problem here -- it wasn't; see update_terrain_bg's own
+    // comment for the real bug. This was a dead end chased first (right
+    // down to reproducing the non-flat index formula exactly, and even
+    // calling regular_bg_map_item::cell_index() directly instead of
+    // hand-copying it, with no change in the symptom), kept once the
+    // real fix landed simply because "big" maps are always flat_layout
+    // regardless of size, which is one less indexing scheme to reason
+    // about later, at a CPU cost their own docs call out but that doesn't
+    // matter for one background repainted on room change, not per frame.
+    constexpr int terrain_map_cols = 96;
+    constexpr int terrain_map_rows = 96;
+    constexpr int terrain_map_half_width_px = (terrain_map_cols * 8) / 2;
+    constexpr int terrain_map_half_height_px = (terrain_map_rows * 8) / 2;
 
-    int tile_world_x[tile_pool_size];
-    int tile_world_y[tile_pool_size];
-    int tile_active_count = 0;
+    constexpr int terrain_tile_blank = 0;
+    constexpr int terrain_tile_ground = 1;
 
-    // Recomputes which world-space tiles cover the active room's platforms.
-    // Called once per room change — the room's platform layout is static.
-    void populate_room_tiles()
+    alignas(int) bn::regular_bg_map_cell terrain_cells[terrain_map_cols * terrain_map_rows];
+
+    // Same visual depth the old ground sprite gave a platform (32px, See
+    // git history's tile_pool_size-based renderer) -- purely cosmetic,
+    // doesn't affect collision (level::ground_top_y_at only ever looks at
+    // a platform's top edge, never its drawn thickness).
+    constexpr int terrain_visual_depth_px = 32;
+
+    // Fills terrain_cells from the active room's platform list and pushes
+    // it to VRAM. Called once per room change, same trigger point the old
+    // sprite-based populate_room_tiles() used — a room's platform layout
+    // is static, so this never needs to run mid-room.
+    void populate_room_terrain(bn::regular_bg_map_ptr& terrain_bg_map)
     {
-        tile_active_count = 0;
+        for(bn::regular_bg_map_cell& cell : terrain_cells)
+        {
+            cell = terrain_tile_blank;
+        }
 
         for(int i = 0; i < game::level::room_platform_count(); ++i)
         {
             game::level::platform_view p = game::level::room_platform(i);
 
-            // Rounding up here would draw a tile past the platform's actual
-            // (narrower) collision width -- ground that looks solid but
-            // isn't, so walking onto that sliver drops the player through
-            // it. Round down instead: platforms under 64px still get one
-            // tile (there's no smaller placeholder piece to draw), but any
-            // wider platform never shows more ground than it actually has.
-            int tiles_needed = p.width_px / 64;
+            int left_col = (p.left_x_px + terrain_map_half_width_px) / 8;
+            int right_col = (p.left_x_px + p.width_px + terrain_map_half_width_px + 7) / 8;
+            int top_row = (p.top_y_px + terrain_map_half_height_px) / 8;
+            int bottom_row = top_row + (terrain_visual_depth_px / 8);
 
-            if(tiles_needed < 1)
-            {
-                tiles_needed = 1;
-            }
+            if(left_col < 0) left_col = 0;
+            if(right_col > terrain_map_cols) right_col = terrain_map_cols;
+            if(top_row < 0) top_row = 0;
+            if(bottom_row > terrain_map_rows) bottom_row = terrain_map_rows;
 
-            for(int t = 0; t < tiles_needed && tile_active_count < tile_pool_size; ++t, ++tile_active_count)
+            for(int row = top_row; row < bottom_row; ++row)
             {
-                tile_world_x[tile_active_count] = p.left_x_px + 32 + (t * 64);
-                tile_world_y[tile_active_count] = p.top_y_px + 16;
+                for(int col = left_col; col < right_col; ++col)
+                {
+                    terrain_cells[(row * terrain_map_cols) + col] = terrain_tile_ground;
+                }
             }
         }
+
+        terrain_bg_map.reload_cells_ref();
     }
 
-    // Re-positions the tile sprites relative to the camera every frame —
-    // unlike populate_room_tiles, this has to run continuously, since a
-    // multi-screen room's tiles move on-screen as the camera scrolls even
-    // though their world position never changes.
-    void update_tile_sprites(bn::sprite_ptr tile_sprites[tile_pool_size])
+    // Re-positions the terrain background relative to the camera every
+    // frame -- unlike populate_room_terrain, this has to run continuously,
+    // since a multi-screen room's terrain moves on-screen as the camera
+    // scrolls even though its world position never changes.
+    void update_terrain_bg(bn::regular_bg_ptr& terrain_bg)
     {
-        for(int i = 0; i < tile_pool_size; ++i)
-        {
-            bool active = i < tile_active_count;
-            tile_sprites[i].set_visible(active);
-
-            if(active)
-            {
-                set_world_pixel_position(tile_sprites[i], tile_world_x[i], tile_world_y[i]);
-            }
-        }
+        // Plain set_position, not set_top_left_position -- the cell data
+        // is already centered on world (0,0) (populate_room_terrain fills
+        // around the map's own middle row/col), so the bg's center
+        // already IS world (0,0), exactly like every sprite's own
+        // position already is its center (set_world_pixel_position).
+        // set_top_left_position would apply a second, redundant
+        // top-left-vs-center correction on top of that centering -- using
+        // it (with a manual -half_width/-half_height offset to compensate)
+        // was a real bug caught building this: it did not produce a
+        // simple off-by-some-constant error, it silently rendered only
+        // the left/top half of every room's terrain, which took far
+        // longer to root-cause than the fix ultimately was.
+        terrain_bg.set_position(-game::to_pixels(game::level::camera_x()), -game::to_pixels(game::level::camera_y()));
     }
 
     void render_skeletons(bn::sprite_ptr skeleton_sprites[], bn::sprite_ptr bone_sprites[])
@@ -599,22 +653,28 @@ int main()
     bn::sprite_ptr rival_sprite = bn::sprite_items::rival.create_sprite(0, 0);
     rival_sprite.set_visible(false);
 
-    // Room geometry is data-driven (assets/rooms/*.tmj, see src/game/level.cpp)
-    // but every room reuses the same handful of placeholder tile sprites.
-    bn::sprite_ptr tile_sprites[tile_pool_size] = {
-        bn::sprite_items::ground.create_sprite(0, 0), bn::sprite_items::ground.create_sprite(0, 0),
-        bn::sprite_items::ground.create_sprite(0, 0), bn::sprite_items::ground.create_sprite(0, 0),
-        bn::sprite_items::ground.create_sprite(0, 0), bn::sprite_items::ground.create_sprite(0, 0),
-        bn::sprite_items::ground.create_sprite(0, 0), bn::sprite_items::ground.create_sprite(0, 0),
-        bn::sprite_items::ground.create_sprite(0, 0), bn::sprite_items::ground.create_sprite(0, 0),
-        bn::sprite_items::ground.create_sprite(0, 0), bn::sprite_items::ground.create_sprite(0, 0),
-        bn::sprite_items::ground.create_sprite(0, 0), bn::sprite_items::ground.create_sprite(0, 0),
-        bn::sprite_items::ground.create_sprite(0, 0), bn::sprite_items::ground.create_sprite(0, 0),
-        bn::sprite_items::ground.create_sprite(0, 0), bn::sprite_items::ground.create_sprite(0, 0),
-        bn::sprite_items::ground.create_sprite(0, 0), bn::sprite_items::ground.create_sprite(0, 0),
-    };
+    // Room geometry is data-driven (assets/rooms/*.tmj, see src/game/level.cpp),
+    // drawn on one shared background rather than per-room sprite pools --
+    // see populate_room_terrain's comment. terrain_cells outlives
+    // terrain_bg (both live for main()'s entire run), so this is a single
+    // persistent background repainted per room, not recreated.
+    //
+    // set_allow_offset(false) around creation matches Butano's own
+    // dynamic_regular_bg example exactly -- tile-offset compression tries
+    // to reference repeated tiles instead of storing duplicates, which
+    // fights a map that's intentionally mutated cell-by-cell later
+    // (reload_cells_ref, in populate_room_terrain); disabling it for this
+    // one bg's creation is what makes runtime cell edits actually stick.
+    bn::bg_tiles::set_allow_offset(false);
 
-    for(bn::sprite_ptr& s : tile_sprites) { s.set_visible(false); }
+    bn::regular_bg_map_item terrain_map_item(
+            terrain_cells[0], bn::size(terrain_map_cols, terrain_map_rows), bn::compression_type::NONE, 1, true);
+    bn::regular_bg_item terrain_bg_item(
+            bn::regular_bg_tiles_items::ground_bg, bn::bg_palette_items::ground_bg_palette, terrain_map_item);
+    bn::regular_bg_ptr terrain_bg = terrain_bg_item.create_bg(0, 0);
+    bn::regular_bg_map_ptr terrain_bg_map = terrain_bg.map();
+
+    bn::bg_tiles::set_allow_offset(true);
 
     bn::sprite_ptr hitbox_sprite = bn::sprite_items::hitbox.create_sprite(0, 0);
     hitbox_sprite.set_visible(false);
@@ -765,6 +825,17 @@ int main()
     bn::sprite_ptr relic_sprite = bn::sprite_items::save_point.create_sprite(0, 0);
     relic_sprite.set_visible(false);
 
+    // The Rival, trapped (rooms.md: catacombs_18). Same shape as
+    // relic_sprite just above -- reuses "bone" (already loaded, no new
+    // palette bank) rather than "save_point" again, so the two markers
+    // read as visually distinct grey-box objects in the same room. A
+    // dedicated sprite, not a borrowed enemy-pool slot -- moving terrain
+    // off the sprite budget entirely (see populate_room_terrain's
+    // comment) freed 20 sprites, so the reuse hack a previous session
+    // needed here no longer is one.
+    bn::sprite_ptr rival_trapped_sprite = bn::sprite_items::bone.create_sprite(0, 0);
+    rival_trapped_sprite.set_visible(false);
+
     // HUD: top-left corner, HP row above MP row, 10 segments of 8px each.
     bn::sprite_ptr hp_hud_sprites[hud_segments] = {
         bn::sprite_items::hud_hp.create_sprite(-112, -72), bn::sprite_items::hud_hp.create_sprite(-104, -72),
@@ -802,7 +873,7 @@ int main()
     }
 
     game::spawn_room_enemies();
-    populate_room_tiles();
+    populate_room_terrain(terrain_bg_map);
 
     int last_drawn_room = -1;
 
@@ -897,7 +968,7 @@ int main()
                 player.grounded = true;
                 player.frames_since_grounded = 0;
                 game::spawn_room_enemies();
-                populate_room_tiles();
+                populate_room_terrain(terrain_bg_map);
                 last_drawn_room = debug_warp_room;
 
                 debug_warp_active = false;
@@ -995,7 +1066,7 @@ int main()
 
         if(current_room != last_drawn_room)
         {
-            populate_room_tiles();
+            populate_room_terrain(terrain_bg_map);
             game::spawn_room_enemies();
             last_drawn_room = current_room;
 
@@ -1070,13 +1141,25 @@ int main()
             set_world_pixel_position(relic_sprite, relic.x + relic.width / 2, relic.y + relic.height / 2);
         }
 
+        // Same idempotent-hide logic as relic_sprite above, keyed on
+        // rival_unlocked instead of has_double_jump.
+        bool rival_trapped_visible = game::level::room_unlock_trigger_count() > 0 && ! player.rival_unlocked;
+        rival_trapped_sprite.set_visible(rival_trapped_visible);
+
+        if(rival_trapped_visible)
+        {
+            game::level::unlock_trigger_view trapped = game::level::room_unlock_trigger(0);
+            set_world_pixel_position(rival_trapped_sprite, trapped.x + trapped.width / 2,
+                    trapped.y + trapped.height / 2);
+        }
+
         if(save_flash_frames > 0)
         {
             --save_flash_frames;
             save_point_sprite.set_visible((save_flash_frames / 3) % 2 == 0);
         }
 
-        update_tile_sprites(tile_sprites);
+        update_terrain_bg(terrain_bg);
         render_skeletons(skeleton_sprites, bone_sprites);
         render_bats(bat_sprites);
         render_archers(archer_sprites, arrow_sprites);
@@ -1086,29 +1169,6 @@ int main()
         render_medusa_heads(medusa_head_sprites);
         render_bone_colossus(bone_colossus_sprite, bone_colossus_hitbox_sprite, bone_colossus_rib_sprites);
         render_hud(hp_hud_sprites, mp_hud_sprites, player);
-
-        // The Rival, trapped (rooms.md: catacombs_18) -- reuses
-        // skeleton_sprites[0] rather than a new dedicated sprite. Butano's
-        // sprite-item pool is a hard 128 (BN_CFG_SPRITES_MAX_ITEMS,
-        // BN_BASIC_ASSERT-enforced, crashes on the 129th), and this
-        // project was already sitting exactly at that ceiling -- one more
-        // dedicated sprite doesn't fit. Safe to borrow, and must run after
-        // render_skeletons() above, not before: catacombs_18 has zero
-        // enemies, so render_skeletons() always leaves every
-        // skeleton_sprites slot hidden there (active_skeleton_count() is
-        // 0) -- if this ran first, that call would immediately re-hide
-        // slot 0 again the same frame. Same idempotent-hide logic as
-        // relic_sprite above, keyed on rival_unlocked instead of
-        // has_double_jump.
-        bool rival_trapped_visible = game::level::room_unlock_trigger_count() > 0 && ! player.rival_unlocked;
-        skeleton_sprites[0].set_visible(rival_trapped_visible);
-
-        if(rival_trapped_visible)
-        {
-            game::level::unlock_trigger_view trapped = game::level::room_unlock_trigger(0);
-            set_world_pixel_position(skeleton_sprites[0], trapped.x + trapped.width / 2,
-                    trapped.y + trapped.height / 2);
-        }
 
         bn::core::update();
     }

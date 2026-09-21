@@ -395,6 +395,79 @@ screen's occupied-slot marker (`bone`-reused, position-only signal)
 appearing after a fully fresh relaunch. Together these fully verify a
 save round-trip without ever relying on sprite color.
 
+## 14. Terrain was drawn as sprites, and re-hit the 128 ceiling with only Catacombs built (resolved)
+
+**Problem:** with only the Catacombs built (M3), the project was already
+sitting at exactly 128 total sprites (entry #12's crash) -- no room left
+for the Machine Tower's own enemies/effects before even starting it.
+
+**Diagnosis, confirmed:** room terrain (every platform) was drawn as
+"ground" sprites, 20 of them in a shared pool
+(`grep -o create_sprite src/platform/main.cpp | wc -l` was 128; removing
+just that pool brought it to 108). On real GBA hardware, non-moving
+level geometry belongs on a background tilemap layer, which costs no
+sprite/OAM budget at all -- sprites should be reserved for things that
+actually move (player, enemies, projectiles, effects, pickups). This
+was a leftover from M1's placeholder renderer, never revisited as the
+sprite count grew.
+
+**Fix:** a background tilemap generated per-room from the same
+`level::room_platform` data the old sprite renderer used (collision
+itself never changed -- only how the result is drawn), following
+Butano's own `dynamic_regular_bg` example almost exactly: a mutable
+`bn::regular_bg_map_cell` array, refilled and re-uploaded
+(`reload_cells_ref()`) once per room change, repositioned every frame to
+track the camera. New placeholder tile assets generated via a new
+`tools/gen_placeholder_bg_tiles.py` (a `regular_bg_tiles` + `bg_palette`
+pair, mirroring `gen_placeholder_sprite.py`'s existing hand-rolled-BMP
+approach). Result: 128 -> 109 (108 after removing the sprite pool, +1
+putting back the Rival-trapped marker's own dedicated sprite -- see
+below).
+
+**Three real bugs hit getting there, roughly in order of how long each
+one cost:**
+
+1. Missing `bn::bg_tiles::set_allow_offset(false)` bracketed around the
+   background's creation (matching `dynamic_regular_bg`'s own example
+   exactly). Without it, tile-offset compression fights a map meant to
+   be mutated cell-by-cell later; nothing crashed, the whole background
+   just silently never appeared. Cheapest of the three to find (the
+   example already had the answer) and cheapest to miss (nothing about
+   the symptom pointed at it).
+
+2. A **dead end**, not a fix: assumed a 64x64 (not "big") map's non-flat,
+   4-screen-block cell layout (see `bn::regular_bg_map_item::
+   flat_layout`) was the cause of only ever seeing the left/top half of
+   a room's terrain. Reproduced that layout's index formula exactly,
+   even calling `regular_bg_map_item::cell_index()` directly instead of
+   hand-copying it -- identical symptom either way. Switched to a 96x96
+   "big" map (always flat-layout regardless of size) to eliminate the
+   question entirely, which didn't fix it either, proving the theory
+   wrong. Kept the 96x96/big choice anyway once the real fix (#3) landed,
+   since it's one less indexing scheme to reason about later and the
+   performance cost doesn't matter for a background repainted on room
+   change, not per frame.
+
+3. **The actual bug:** used `set_top_left_position()` with a manual
+   `-half_width`/`-half_height` offset, on a background whose cell data
+   was already filled centered on world (0,0) (the same convention every
+   sprite's own position already uses). That's a **redundant** top-left
+   correction stacked on data that was already center-relative -- fixed
+   by using plain `set_position(-camera_x_px, -camera_y_px)` instead,
+   exactly mirroring how every sprite already positions itself
+   (`set_world_pixel_position`). Once found, a one-line fix; finding it
+   took reasoning through nearly everything else first, because the
+   symptom (exactly half the terrain missing, cut precisely at screen
+   center) looked exactly like an indexing/layout bug, not a
+   position-formula one.
+
+**Lesson for next time this comes up:** when a background renders
+*something*, but cropped exactly in half at a suspiciously round
+boundary (map dimension / 2, or screen center), suspect the
+position/centering formula before the cell layout -- test with a
+plain, uncorrected `set_position` first, since it's a much smaller
+space of things that can be wrong.
+
 ## Net result
 
 None of steps 1-6 required installing anything or touching files outside

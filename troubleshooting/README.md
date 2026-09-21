@@ -12,10 +12,16 @@ where the *cause* wasn't where the symptom pointed.
 ## Files
 
 - [build-environment.md](build-environment.md) -- getting `make` to
-  actually find and run the toolchain on this machine: wrong toolchain
+  actually find and run the toolchain on this machine (wrong toolchain
   documented in CLAUDE.md, a stray `DEVKITARM` env var silently winning
   over `WONDERFUL_TOOLCHAIN`, env vars not reaching `make.exe` at all,
-  missing runtime DLLs, and GCC's temp-file directory.
+  missing runtime DLLs, GCC's temp-file directory); verifying gameplay
+  and saves in mGBA from this sandbox (desktop-capture screenshots don't
+  work here, mGBA's own framebuffer screenshot does; reading a `.sav`
+  file's raw bytes beats screenshot color IDs, which are unreliable);
+  and real Butano/GBA rendering bugs hit along the way (the 128-sprite
+  hardware ceiling, and moving room terrain off sprites onto a
+  background tilemap).
 - [room-transitions-and-doors.md](room-transitions-and-doors.md) -- the
   room-transition infinite-loop bug (arriving through a door landing
   inside the reciprocal door's own trigger box), the engine-level fix,
