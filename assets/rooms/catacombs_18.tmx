@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="8" tileheight="8" infinite="0" nextlayerid="2" nextobjectid="5">
+<map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="8" tileheight="8" infinite="0" nextlayerid="2" nextobjectid="6">
  <objectgroup id="1" name="objects">
   <object id="1" name="floor" x="0" y="128" width="240" height="32">
    <properties>
@@ -24,6 +24,12 @@
    <properties>
     <property name="kind" value="relic"/>
     <property name="relic_type" value="double"/>
+   </properties>
+  </object>
+  <object id="5" name="rival_trapped" x="40" y="104" width="32" height="24">
+   <properties>
+    <property name="kind" value="unlock"/>
+    <property name="unlock_type" value="rival"/>
    </properties>
   </object>
  </objectgroup>

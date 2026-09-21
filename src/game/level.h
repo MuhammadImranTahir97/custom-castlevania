@@ -148,6 +148,27 @@ namespace game::level
     // harmless).
     bool try_collect_relic(fixed x, fixed y, fixed half_width, fixed half_height, int& out_type);
 
+    // Plain-pixel view of one one-time story unlock trigger in the active
+    // room (e.g. the Rival, found trapped in catacombs_18).
+    // type: see tools/convert_rooms.py's UNLOCK_TYPE_IDS.
+    struct unlock_trigger_view
+    {
+        int type;
+        int x;
+        int y;
+        int width;
+        int height;
+    };
+
+    // Read-only access to the active room's unlock triggers, for rendering.
+    int room_unlock_trigger_count();
+    unlock_trigger_view room_unlock_trigger(int index);
+
+    // Same contract as try_collect_relic (touch trigger, not consumed,
+    // caller makes applying it idempotent) but for a one-time story
+    // unlock rather than an inventory item.
+    bool try_collect_unlock(fixed x, fixed y, fixed half_width, fixed half_height, int& out_type);
+
     // Returns the y of the closest surface under x that's at or below
     // reference_y, in the active room — no_ground_y if there isn't one.
     //

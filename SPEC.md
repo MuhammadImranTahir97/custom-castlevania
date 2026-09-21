@@ -174,6 +174,9 @@ all relics, all subweapons.
 **Separate:** moveset, jump arc, attack hitbox, dodge style, sprite set.
 
 **Swapping:** instant, shoulder button, allowed mid-air, zero cost.
+**Locked until the Rival is found** (section 7's Shape, step 4 — right
+after the Catacombs boss): the swap button does nothing before that,
+since there's only one character to swap to.
 
 Shared stats are deliberate — swapping is about *situation*, never about
 managing two separate characters.
@@ -200,6 +203,9 @@ managing two separate characters.
 | Cracked wall above a pit | Hunter's reach from distance |
 
 Keep this light. Most gating stays with relics — this is seasoning.
+None of these ~8 rooms can be in the Catacombs — the Rival isn't found
+until its end, so nothing before that point can require her (see
+rooms.md's gate-design rules).
 
 ---
 
@@ -473,8 +479,8 @@ Secrets reward — vessels, cards, good equipment. Secrets never block.
 | Role | Character | Name |
 |---|---|---|
 | Player 1 | A young hunter, first real mission | *TBD* |
-| Player 2 | Fellow apprentice, corrupted then freed | *TBD* |
-| Goal | The mentor, captured in the opening | *TBD* |
+| Player 2 | Fellow apprentice, found trapped after the Catacombs | *TBD* |
+| Goal | The mentor, captured in the opening — later found corrupted | *TBD* |
 | Mid-boss | The Countess — taunts, vanishes, returns | *TBD* |
 | Final boss | The Count | *TBD* |
 
@@ -486,19 +492,27 @@ Five characters. That is all a GBA game needs.
 1. Two apprentices and their mentor confront the Count
 2. The ritual succeeds; the castle rises
 3. The mentor is captured; the apprentices are separated and fall
-4. The Hunter climbs back up alone
-5. The Rival is found corrupted, fought, then freed — **and becomes playable**
+4. The Hunter climbs back up alone, and finds the Rival trapped at the
+   foot of the Catacombs (right after its boss) — freed on the spot,
+   no fight, **and becomes playable from here on**
+5. Deeper in the castle, the Mentor is found corrupted — fought, then
+   freed. This is the corruption arc; the Rival no longer has one
 6. Final confrontation; the castle falls
 
-The Rival's arc is a *gameplay* unlock, not just a cutscene. That is the
-strongest story beat in the design.
+The Rival's unlock is a *gameplay* moment, not just a cutscene — found,
+touched, playable, with no fight gating it. That immediacy, this early
+(area 2, not deep in the castle), is deliberate: two movesets become
+available almost from the start, rather than as a late-game payoff.
+The Mentor's corruption arc — found, fought, freed — carries the
+emotional weight the Rival's arc used to (see enemies.md boss #9).
 
 ### Story budget
 
 | Moment | Text boxes |
 |---|---|
 | Opening | 8 |
-| Rival encounters (×3) | 15 |
+| Rival found & freed (Catacombs) | 4 |
+| Mentor corruption arc (found, fought, freed) | 11 |
 | Countess encounters (×2) | 8 |
 | Pre-final-boss | 6 |
 | Ending | 10 |

@@ -192,6 +192,40 @@ namespace game::level
         return false;
     }
 
+    int room_unlock_trigger_count()
+    {
+        return active_room().unlock_trigger_count;
+    }
+
+    unlock_trigger_view room_unlock_trigger(int index)
+    {
+        const room_data::unlock_trigger_def& u = active_room().unlock_triggers[index];
+        return { u.type, u.x, u.y, u.width, u.height };
+    }
+
+    bool try_collect_unlock(fixed x, fixed y, fixed half_width, fixed half_height, int& out_type)
+    {
+        const room_data::room_def& room = active_room();
+
+        for(int i = 0; i < room.unlock_trigger_count; ++i)
+        {
+            const room_data::unlock_trigger_def& u = room.unlock_triggers[i];
+            fixed left = to_fixed(u.x);
+            fixed right = to_fixed(u.x + u.width);
+            fixed top = to_fixed(u.y);
+            fixed bottom = to_fixed(u.y + u.height);
+
+            if(x + half_width >= left && x - half_width <= right
+                    && y + half_height >= top && y - half_height <= bottom)
+            {
+                out_type = u.type;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     fixed ground_top_y_at(fixed x, fixed reference_y)
     {
         const room_data::room_def& room = active_room();

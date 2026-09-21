@@ -44,6 +44,7 @@ namespace game
         int lck = 0;
 
         bool has_double_jump = false;
+        bool rival_unlocked = false;
 
         int checkpoint_room_index = 0;
         fixed checkpoint_x = 0;

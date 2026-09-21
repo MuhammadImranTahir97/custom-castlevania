@@ -828,6 +828,16 @@ int main()
     int debug_warp_room = 0;
     bool debug_combo_prev_held = false;
 
+    // DEBUG ONLY — the Rival is now locked out until found trapped in
+    // catacombs_18 (SPEC.md section 7), which means beating the Catacombs
+    // boss every time just to test her moveset. L+R+B held together
+    // toggles rival_unlocked directly, bypassing that (SELECT was the
+    // first instinct, but SELECT's own press-edge also toggles the pause
+    // menu the same frame the combo completes -- B doesn't collide with
+    // anything else read this early in the frame). Should come out
+    // before shipping, same as the room-warp above.
+    bool debug_rival_combo_prev_held = false;
+
     while(true)
     {
         bool debug_combo_held = bn::keypad::held(bn::keypad::key_type::L)
@@ -847,6 +857,17 @@ int main()
         }
 
         debug_combo_prev_held = debug_combo_held;
+
+        bool debug_rival_combo_held = bn::keypad::held(bn::keypad::key_type::L)
+                && bn::keypad::held(bn::keypad::key_type::R)
+                && bn::keypad::held(bn::keypad::key_type::B);
+
+        if(debug_rival_combo_held && ! debug_rival_combo_prev_held && ! paused && ! debug_warp_active)
+        {
+            player.rival_unlocked = ! player.rival_unlocked;
+        }
+
+        debug_rival_combo_prev_held = debug_rival_combo_held;
 
         if(debug_warp_active)
         {

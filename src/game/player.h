@@ -74,6 +74,14 @@ namespace game
         character_kind character = character_kind::hunter;
         bool prev_swap_held = false;
 
+        // SPEC.md section 7's Shape, step 4 -- the Rival is found trapped
+        // partway through the Catacombs, not available from the start.
+        // The swap button (L) does nothing until this is true (see
+        // update_player) -- there's only one character to swap to before
+        // then. Set by world.cpp's rival-unlock trigger, or a debug
+        // override (main.cpp).
+        bool rival_unlocked = false;
+
         // The Rival's 3-hit combo. Unused by the Hunter.
         int combo_step = 0;        // 0, 1 or 2 — which of the 3 hits comes next
         int combo_reset_timer = 0; // frames spent idle since the last hit ended

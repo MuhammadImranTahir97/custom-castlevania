@@ -23,6 +23,7 @@ namespace game
         slot.lck = player.lck;
 
         slot.has_double_jump = player.has_double_jump;
+        slot.rival_unlocked = player.rival_unlocked;
 
         slot.checkpoint_room_index = checkpoint_room_index;
         slot.checkpoint_x = checkpoint_x;
@@ -47,5 +48,6 @@ namespace game
         player.lck = slot.lck;
 
         player.has_double_jump = slot.has_double_jump;
+        player.rival_unlocked = slot.rival_unlocked;
     }
 }

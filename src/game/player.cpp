@@ -455,7 +455,12 @@ namespace game
     {
         bool attack_pressed = input.attack_held && ! player.prev_attack_held;
         bool dodge_pressed = input.dodge_held && ! player.prev_dodge_held;
-        bool swap_pressed = input.swap_held && ! player.prev_swap_held;
+
+        // SPEC.md section 3: locked until the Rival is found (section 7's
+        // Shape, step 4) -- there's only one character to swap to before
+        // then, so the button just does nothing rather than swapping to
+        // an unplayed-yet character.
+        bool swap_pressed = input.swap_held && ! player.prev_swap_held && player.rival_unlocked;
 
         // SPEC.md's control map: up+attack is reserved for a future
         // subweapon system -- not built yet, so it's withheld here rather

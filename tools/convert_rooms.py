@@ -24,6 +24,12 @@ Room schema (one "objects" object layer per map; see assets/rooms/README.md):
     never RNG (SPEC.md section 4's card-placement rule applies here too) --
     picking one up is a room-data pickup, not a boss-kill side effect, so a
     boss's own reward relic is just placed in the room past its arena.
+  - a "kind"=unlock rectangle per one-time story unlock, with an
+    "unlock_type" property (one of: rival -- see UNLOCK_TYPE_IDS). Same
+    shape as a relic pickup (a touch trigger, not a boss-kill side effect)
+    but for a gameplay-system flag rather than an inventory item -- see
+    SPEC.md section 7's Shape, step 4: the Rival is found trapped in
+    catacombs_18 and freed by touching this, no fight.
 
 A room can also have a map-level (not object) custom property
 "is_save_room" (bool): SPEC.md's save rooms, which restore HP/MP fully
@@ -62,6 +68,11 @@ RELIC_TYPE_IDS = {
     'double': 0,
 }
 
+# Must match src/game/world.cpp's unlock_type_rival and friends.
+UNLOCK_TYPE_IDS = {
+    'rival': 0,
+}
+
 
 def load_room(path):
     with open(path, 'r') as f:
@@ -80,6 +91,7 @@ def load_room(path):
     doors = []
     enemies = []
     relics = []
+    unlocks = []
     spawn = None
 
     for layer in data.get('layers', []):
@@ -146,6 +158,22 @@ def load_room(path):
                     'width': obj['width'],
                     'height': obj['height'],
                 })
+            elif kind == 'unlock':
+                unlock_type = props['unlock_type']
+
+                if unlock_type not in UNLOCK_TYPE_IDS:
+                    raise ValueError(
+                        '%s has an unlock with unknown unlock_type "%s" (expected one of: %s)'
+                        % (path, unlock_type, ', '.join(UNLOCK_TYPE_IDS))
+                    )
+
+                unlocks.append({
+                    'type': UNLOCK_TYPE_IDS[unlock_type],
+                    'x': to_game_x(obj['x']),
+                    'y': to_game_y(obj['y']),
+                    'width': obj['width'],
+                    'height': obj['height'],
+                })
 
     if spawn is None:
         raise ValueError('%s has no "spawn" point object' % path)
@@ -156,7 +184,7 @@ def load_room(path):
     room_id = os.path.splitext(os.path.basename(path))[0]
     return {
         'id': room_id, 'spawn': spawn, 'platforms': platforms, 'doors': doors,
-        'enemies': enemies, 'relics': relics, 'is_save_room': is_save_room,
+        'enemies': enemies, 'relics': relics, 'unlocks': unlocks, 'is_save_room': is_save_room,
         'half_width': half_width, 'half_height': half_height,
     }
 
@@ -217,6 +245,9 @@ def write_header(path):
         f.write('    struct relic_pickup_def\n    {\n')
         f.write('        int type;\n        int x;\n        int y;\n        int width;\n        int height;\n')
         f.write('    };\n\n')
+        f.write('    struct unlock_trigger_def\n    {\n')
+        f.write('        int type;\n        int x;\n        int y;\n        int width;\n        int height;\n')
+        f.write('    };\n\n')
         f.write('    struct room_def\n    {\n')
         f.write('        const char* id;\n')
         f.write('        int spawn_x;\n        int spawn_y;\n')
@@ -224,6 +255,7 @@ def write_header(path):
         f.write('        const door_def* doors;\n        int door_count;\n')
         f.write('        const enemy_spawn_def* enemy_spawns;\n        int enemy_spawn_count;\n')
         f.write('        const relic_pickup_def* relic_pickups;\n        int relic_pickup_count;\n')
+        f.write('        const unlock_trigger_def* unlock_triggers;\n        int unlock_trigger_count;\n')
         f.write('        int is_save_room;\n')
         f.write('        int half_width;\n        int half_height;\n')
         f.write('    };\n\n')
@@ -301,18 +333,32 @@ def write_source(path, rooms, index):
 
             f.write('    };\n\n')
 
+            unlocks = room['unlocks']
+
+            f.write('    static const unlock_trigger_def unlocks_%d[] = {\n' % i)
+
+            for u in unlocks:
+                f.write('        { %d, %d, %d, %d, %d },\n' % (u['type'], u['x'], u['y'], u['width'], u['height']))
+
+            if not unlocks:
+                f.write('        { 0, 0, 0, 0, 0 },\n')
+
+            f.write('    };\n\n')
+
         f.write('    const room_def rooms[] = {\n')
 
         for i, room in enumerate(rooms):
             spawn = room['spawn']
             f.write(
-                '        { %s, %d, %d, platforms_%d, %d, doors_%d, %d, enemies_%d, %d, relics_%d, %d, %d, %d, %d },\n'
+                '        { %s, %d, %d, platforms_%d, %d, doors_%d, %d, enemies_%d, %d, relics_%d, %d,'
+                ' unlocks_%d, %d, %d, %d, %d },\n'
                 % (
                     cpp_string(room['id']), spawn['x'], spawn['y'],
                     i, len(room['platforms']),
                     i, len(room['doors']),
                     i, len(room['enemies']),
                     i, len(room['relics']),
+                    i, len(room['unlocks']),
                     1 if room['is_save_room'] else 0,
                     room['half_width'], room['half_height'],
                 )

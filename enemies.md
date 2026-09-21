@@ -268,12 +268,18 @@ Full attack patterns to be specified during M3–M4. Structure:
 | 2 | The Countess *(1st)* | Machine Tower | **Kick Boots** | Taunts, flees at 50% HP |
 | 3 | The Warden | Gallery | **Heavy Ring** | Grab-heavy, anti-roll |
 | 4 | Choir of Ash | Chapel | **Roc Wing** | Multi-target, crowd pressure |
-| 5 | **The Rival** *(1st)* | Waterway | **Cleansing** | Mirrors player moveset |
+| 5 | TBD | Waterway | **Cleansing** | TBD |
 | 6 | Tidewyrm | Clock Tower | **Tackle** | Arena hazard fight |
 | 7 | The Countess *(2nd)* | Observatory | **Final Key** | Full fight, no escape |
-| 8 | **The Rival** *(2nd)* | Inner Quarters | *story* | Freed after — **becomes playable** |
-| 9 | The Mentor *(corrupted)* | Ceremonial | *story* | Emotional beat |
+| 8 | TBD | Inner Quarters | TBD | TBD |
+| 9 | The Mentor *(corrupted)* | Ceremonial | *story* | Found corrupted, fought, freed — the corruption arc (SPEC.md section 7) |
 | 10 | **The Count** | Ceremonial | *ending* | 3 phases |
+
+**Slots #5 and #8 were both "The Rival"** (a two-part corrupted-then-freed
+arc). SPEC.md moved that unlock to right after boss #1 (Catacombs) —
+found trapped, freed on the spot, no fight — and gave the corruption arc
+to the Mentor (#9) instead. #5 keeps Waterway's Cleansing reward; #8 has
+none yet. Both need a real boss designed before M4b.
 
 ### Boss design rules
 

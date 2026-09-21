@@ -116,18 +116,32 @@ Linear spine with locked side-rooms in every area to return to later.
 6. **Character gates are marked.** A room needing a specific character
    shows a visual hint. ~8 rooms total.
 
-7. **Rival-only vertical gaps are a design tool for after the Rival joins,
-   never before.** The Rival's higher/floatier jump (SPEC.md section 3)
-   covers more horizontal distance per unit of climb than the Hunter's —
-   useful for deliberately gating a gap behind the Rival specifically once
-   she's playable (area 9 onward — see the boss list's "becomes playable").
-   Before that point, every vertical gap in every room must be climbable
-   on the Hunter's jump alone, full stop, because there is no other option
-   yet. This bit Catacombs once already (area 2's climbing shaft in
-   catacombs_05 was originally spaced for a jump distance only the Rival
-   could make, which is exactly backwards this early) — check new gap
-   spacing against the Hunter's actual jump arc, not just "does it look
-   climbable," before treating a room as done.
+7. **Gates before the Rival joins are designed against the Hunter only;
+   gates after must be checked against both characters.** The Rival is
+   found partway through the Catacombs now (right after boss #1, SPEC.md
+   section 7's Shape) — not area 9 — so "before" is only catacombs_01
+   through the boss arena itself; essentially the whole rest of the
+   castle is "after."
+
+   - **Before (Catacombs, up to and including the boss):** the Hunter is
+     the only character that exists yet. Every vertical gap must be
+     climbable on the Hunter's jump alone, full stop — there is no other
+     option, and no relic-gated exception either (Double doesn't exist
+     until the boss is dead). This bit Catacombs once already (catacombs_05's
+     climbing shaft was originally spaced for a jump distance only the
+     Rival could make, which is exactly backwards this early) — check new
+     gap spacing against the Hunter's actual jump arc, not just "does it
+     look climbable."
+   - **After (catacombs_18 onward):** both characters are in play, so a
+     gate has to be checked against whichever is *harder* to satisfy for
+     what the gate is testing — e.g. a pure-height gate needs checking
+     against whichever character jumps lower (the Hunter, both single and
+     double jump once relics are involved); a gate meant to require the
+     Rival specifically needs the Hunter to be unable to clear it at all.
+     Rival-only vertical gaps (her higher/floatier jump covering more
+     distance per unit of climb, SPEC.md section 3) are a legitimate
+     design tool here — they just weren't available at all before her
+     unlock point, which is the thing to get right first.
 
 ---
 
@@ -223,9 +237,13 @@ Exits:
   E → catacombs_10 [gate: Double]
 Layout:
   Vertical shaft. Staggered platforms climbing the left wall.
-  High doorway in the east wall, 68px above the floor -- UNREACHABLE
-  without Double (Rival's single-jump apex is ~65px; Hunter's double
-  jump reaches ~74-77px with a comfortably-timed second press).
+  High doorway in the east wall, 53px above the floor -- UNREACHABLE
+  without Double. Rule #7 applies: the Rival isn't found yet this early
+  (right after the Catacombs boss, not before it), so this gate is
+  designed against the Hunter alone -- the Hunter's exact single-jump
+  apex is 38.25px, the Hunter's worst-case (least-generous timing)
+  double jump is 67.5px, and 53px sits roughly midway between the two
+  with ~15px of margin on both sides.
 Enemies:
   3x Bat (erratic, swoop on approach)
   2x Fleaman (chaotic hopping between platforms)
@@ -488,13 +506,20 @@ Exits:
   E → machine_tower_01
 Layout:
   Small chamber past the arena. A pedestal in the centre, lit from above.
+  The Rival, trapped, is also here (grey-box: a simple marker is fine --
+  see src/game/world.cpp's rival-unlock trigger).
 Enemies:
   none
 Items:
   RELIC: Double (double jump)
   Lore note #4
 Notes:
-  🔑 RELIC ROOM. On pickup, show a brief prompt explaining double jump.
+  🔑 RELIC ROOM, and the Rival's unlock room (SPEC.md section 7's Shape,
+  step 4). Touching the trapped-Rival marker frees her on the spot --
+  no fight, instant playable, character swap (previously locked out
+  entirely, SPEC.md section 3) starts working from here on. On pickup,
+  show a brief prompt explaining double jump; the Rival's freeing could
+  get its own beat too, text budget allowing (SPEC.md section 7).
 
   IMPORTANT: the player should immediately want to backtrack to
   catacombs_05 and catacombs_07. Consider a subtle map hint marking

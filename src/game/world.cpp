@@ -10,6 +10,9 @@ namespace game
         // Must match tools/convert_rooms.py's RELIC_TYPE_IDS.
         constexpr int relic_type_double_jump = 0;
 
+        // Must match tools/convert_rooms.py's UNLOCK_TYPE_IDS.
+        constexpr int unlock_type_rival = 0;
+
         checkpoint_info current_checkpoint;
 
         void respawn(player_state& player)
@@ -66,6 +69,18 @@ namespace game
                 && relic_type == relic_type_double_jump)
         {
             player.has_double_jump = true;
+        }
+
+        // The Rival, found trapped (SPEC.md section 7's Shape, step 4) --
+        // same touch-trigger shape as a relic pickup, but flips a story
+        // flag (rival_unlocked) instead of granting an item.
+        int unlock_type = 0;
+
+        if(level::try_collect_unlock(player.x, player.y,
+                to_fixed(player_half_width), to_fixed(player_half_height), unlock_type)
+                && unlock_type == unlock_type_rival)
+        {
+            player.rival_unlocked = true;
         }
 
         level::spawn_point target{};
