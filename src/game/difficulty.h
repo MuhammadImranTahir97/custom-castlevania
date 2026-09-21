@@ -257,4 +257,41 @@ namespace game::difficulty
     // recovery/cooldown timers above (via *100/125), never to the locked
     // windup frames, per the comment on those.
     constexpr int bone_colossus_phase3_speed_percent = 125;
+
+    // --- Arcana (SPEC.md section 4 / arcana.md) ---
+    // M3 ships 2 Action x 3 Attribute (6 of the full 10x10 grid). Card base
+    // MP costs and the per-attribute weapon-damage bonuses below are locked
+    // by arcana.md's tables. arcana.md describes the rest of each combo's
+    // effect qualitatively ("burns for 3s", "slows enemies 50%") without an
+    // exact damage number -- those, and Diana's own hit power (there is no
+    // Arcana damage number anywhere in SPEC.md/arcana.md to lock to), are
+    // first-draft, tune by feel, same as enemy attack timings above.
+    constexpr int arcana_mercury_mp_cost_per_second = 4; // locked
+    constexpr int arcana_diana_mp_cost_per_use = 15;     // locked
+
+    constexpr int arcana_mercury_salamander_damage_percent = 20; // locked ("+20% dmg")
+    constexpr int arcana_mercury_serpent_damage_percent = 10;    // locked ("+10% dmg")
+    constexpr int arcana_mercury_mandragora_damage_percent = 10; // locked ("+10% dmg")
+    constexpr int arcana_mercury_mandragora_lifesteal_percent = 10; // locked ("heals 10% of damage dealt")
+
+    // Burn/slow durations are locked ("3s"/"2s"/"50%"); tick rate and
+    // per-tick damage (scaled off INT -- SPEC.md: "INT: Arcana spell
+    // power", previously tracked but inert) are first-draft.
+    constexpr int arcana_burn_duration_frames = 3 * 60;
+    constexpr int arcana_burn_tick_interval_frames = 20;    // 3 ticks/sec
+    constexpr int arcana_burn_tick_damage_percent = 15;     // % of INT per tick
+    constexpr int arcana_slow_duration_frames = 2 * 60;
+
+    // Diana: no exact hit-power number in arcana.md -- first-draft, scaled
+    // off INT the same way Mercury's bonus scales off STR-based weapon
+    // damage. "Seed shot... sprouts a damaging vine" is simplified for M3's
+    // grey-box pass to an on-hit lifesteal (paired the same way Mercury's
+    // Mandragora combo is) rather than a new persistent-hazard entity type;
+    // full fidelity is a later polish pass (see v2.md).
+    constexpr int arcana_diana_damage_percent = 150; // % of INT
+    constexpr fixed arcana_diana_projectile_speed = to_fixed(3);
+    constexpr int arcana_diana_projectile_lifetime_frames = 60;
+    constexpr int arcana_diana_projectile_half_width = 4;  // same placeholder size as arc_projectile's
+    constexpr int arcana_diana_projectile_half_height = 4;
+    constexpr int arcana_diana_mandragora_lifesteal_percent = 15;
 }

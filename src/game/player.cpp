@@ -1,5 +1,6 @@
 #include "player.h"
 
+#include "arcana.h"
 #include "difficulty.h"
 #include "level.h"
 
@@ -474,6 +475,7 @@ namespace game
 
         update_mp_regen(player);
         update_invuln(player);
+        update_player_arcana(player, input);
 
         player.prev_jump_held = input.jump_held;
         player.prev_attack_held = input.attack_held;

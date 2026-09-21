@@ -6,34 +6,6 @@
 
 namespace game
 {
-    void launch_arc_projectile(arc_projectile& proj, fixed x, fixed y, fixed velocity_x, fixed velocity_y)
-    {
-        proj.active = true;
-        proj.x = x;
-        proj.y = y;
-        proj.velocity_x = velocity_x;
-        proj.velocity_y = velocity_y;
-        proj.lifetime_frames = 0;
-    }
-
-    void update_arc_projectile(arc_projectile& proj, fixed gravity, int lifetime_limit)
-    {
-        if(! proj.active)
-        {
-            return;
-        }
-
-        proj.velocity_y += gravity;
-        proj.x += proj.velocity_x;
-        proj.y += proj.velocity_y;
-        ++proj.lifetime_frames;
-
-        if(proj.lifetime_frames >= lifetime_limit)
-        {
-            proj.active = false;
-        }
-    }
-
     void apply_projectile_contact(arc_projectile& proj, int half_width, int half_height, int damage,
             player_state& player)
     {
@@ -83,6 +55,7 @@ namespace game
         skeleton.throw_timer = 0;
         skeleton.prev_attack_active = false;
         skeleton.bone = arc_projectile{};
+        skeleton.status = arcana_status{};
     }
 
     void update_skeleton(skeleton_state& skeleton)
@@ -140,6 +113,7 @@ namespace game
         bat.prev_attack_active = false;
         bat.triggered = false;
         bat.swoop_timer = 0;
+        bat.status = arcana_status{};
     }
 
     void update_bat(bat_state& bat, fixed player_x, fixed player_y)
@@ -210,6 +184,7 @@ namespace game
         archer.prev_attack_active = false;
         archer.shoot_timer = 0;
         archer.arrow = arc_projectile{};
+        archer.status = arcana_status{};
     }
 
     void update_archer(archer_state& archer, fixed player_x)
@@ -266,6 +241,7 @@ namespace game
         zombie.alive = true;
         zombie.prev_attack_active = false;
         zombie.falling = false;
+        zombie.status = arcana_status{};
     }
 
     void update_zombie(zombie_state& zombie)
@@ -328,6 +304,7 @@ namespace game
         pillar.prev_attack_active = false;
         pillar.fire_timer = 0;
         pillar.fireball = arc_projectile{};
+        pillar.status = arcana_status{};
     }
 
     void update_bone_pillar(bone_pillar_state& pillar)
@@ -362,6 +339,7 @@ namespace game
         fleaman.grounded = true;
         fleaman.hop_timer = random::range(difficulty::fleaman_hop_interval_min_frames,
                 difficulty::fleaman_hop_interval_max_frames);
+        fleaman.status = arcana_status{};
     }
 
     void update_fleaman(fleaman_state& fleaman)
@@ -434,6 +412,7 @@ namespace game
         medusa.prev_attack_active = false;
         medusa.wave_timer = 0;
         medusa.respawn_timer = 0;
+        medusa.status = arcana_status{};
     }
 
     void update_medusa_head(medusa_head_state& medusa)

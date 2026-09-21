@@ -229,6 +229,31 @@ background/automation process (not by clicking it yourself) and capture
 immediately with no focus step -- the capture shows whatever window the
 calling process's thread currently has focus in, not mGBA.
 
+## 9. Screenshot capture still shows the editor after applying #8's fix (still unresolved)
+
+**Problem:** re-tested #8's `AttachThreadInput` fix in a later session. The
+focus steps themselves worked -- reading mGBA's window title back after
+running them confirmed the emulator was live and rendering ("mGBA - COTM
+DEV (59.9 fps) - 0.10.5"), so the window genuinely had focus at the OS
+level. The `shot` capture immediately after still returned this session's
+own editor/terminal, not mGBA -- the exact symptom #7 described, not #8's.
+
+**Conclusion:** #8's fix addresses a real Windows foreground-lock issue,
+but it isn't what's actually blocking capture here. This points back to
+#7's original diagnosis (a capture-target bug in the sandboxed environment
+that grabs a fixed display rather than the real interactive desktop mGBA
+renders to) -- treat #8 as "a correct fix for a real problem, but not
+*this* problem," and don't re-spend time on focus tricks for this
+specific symptom.
+
+**What still worked without a screenshot:** the emulator's own window
+title reports live FPS, so reading it (`Get-Process | Where MainWindowTitle
+-like "*mGBA*"`) is a cheap way to confirm the ROM booted, is running at
+the correct ~60fps, and isn't hung -- without needing a frame capture.
+Combined with `game.mjs status` staying alive across `key` presses, this
+is enough to smoke-test "does it boot and does input not crash/hang it,"
+just not "does it look right."
+
 ## Net result
 
 None of steps 1-6 required installing anything or touching files outside

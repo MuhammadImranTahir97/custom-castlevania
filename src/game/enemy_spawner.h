@@ -16,7 +16,10 @@ namespace game
     // save system yet — leaving a room and coming back respawns it fresh.
     void spawn_room_enemies();
 
-    void update_enemies(fixed player_x, fixed player_y);
+    // Takes the whole player, not just x/y -- Arcana burn (arcana.h) can
+    // kill an enemy outside of a whip/projectile hit, and that still needs
+    // to grant EXP the same way a hit-kill does.
+    void update_enemies(player_state& player);
 
     // Applies the player's whip to every active enemy and grants EXP for
     // any it kills.

@@ -1,8 +1,10 @@
 #pragma once
 
+#include "arcana_types.h"
 #include "difficulty.h"
 #include "fixed.h"
 #include "input.h"
+#include "projectile.h"
 
 namespace game
 {
@@ -70,6 +72,15 @@ namespace game
 
         bool prev_attack_held = false;
         bool prev_dodge_held = false;
+
+        // Arcana (SPEC.md section 4 / arcana.md) -- M3: 2 Action x 3
+        // Attribute (6 combos). See arcana.h for the actual effects.
+        arcana_loadout arcana;
+        bool arcana_active = false;      // Mercury: true while sustained and affordable this frame
+        int arcana_mp_drain_counter = 0; // sub-frame accumulator for Mercury's per-second MP drain
+        arc_projectile arcana_projectile; // Diana's in-flight shot
+        bool prev_arcana_cast_held = false;
+        bool prev_arcana_cycle_held = false;
     };
 
     struct attack_hitbox

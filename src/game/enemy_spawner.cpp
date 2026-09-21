@@ -1,5 +1,6 @@
 #include "enemy_spawner.h"
 
+#include "arcana.h"
 #include "difficulty.h"
 #include "level.h"
 
@@ -44,6 +45,65 @@ namespace game
         // See bone_colossus_defeated -- deliberately NOT reset by
         // spawn_room_enemies, unlike bone_colossus_active above.
         bool bone_colossus_ever_defeated = false;
+
+        // Applies a (possibly Mercury-enhanced) whip hit to `enemy`,
+        // including any Mercury on-hit status/lifesteal, and grants
+        // exp_reward if this hit killed it. Returns the kill, same as
+        // apply_whip_to_enemy, so callers with extra per-kill behavior
+        // (Medusa Head's respawn_timer, below) can still branch on it.
+        template<typename EnemyState>
+        bool apply_whip_with_arcana(EnemyState& enemy, int half_width, int half_height, int defense,
+                int power, const attack_hitbox& hitbox, int exp_reward, player_state& player)
+        {
+            int damage_dealt = 0;
+            bool hit = false;
+            bool killed = apply_whip_to_enemy(enemy, half_width, half_height, defense, power, hitbox,
+                    &damage_dealt, &hit);
+
+            if(hit && player.arcana_active && player.arcana.action == arcana_action::mercury)
+            {
+                apply_arcana_hit(enemy, get_arcana_effect(arcana_action::mercury, player.arcana.attribute),
+                        damage_dealt, player.intelligence, player);
+            }
+
+            if(killed)
+            {
+                grant_exp(player, exp_reward);
+            }
+
+            return killed;
+        }
+
+        // Applies the player's in-flight Diana shot to `enemy` if it's
+        // still active and overlapping, including its on-hit status/
+        // lifesteal, and grants exp_reward if this hit killed it.
+        template<typename EnemyState>
+        bool apply_diana_with_arcana(EnemyState& enemy, int half_width, int half_height, int defense,
+                int exp_reward, player_state& player)
+        {
+            if(! player.arcana_projectile.active)
+            {
+                return false;
+            }
+
+            int damage_dealt = 0;
+            int hit_power = arcana_diana_hit_power(player.intelligence);
+            bool killed = apply_arcana_projectile_to_enemy(enemy, half_width, half_height, defense, hit_power,
+                    player.arcana_projectile, &damage_dealt);
+
+            if(damage_dealt > 0)
+            {
+                apply_arcana_hit(enemy, get_arcana_effect(arcana_action::diana, player.arcana.attribute),
+                        damage_dealt, player.intelligence, player);
+            }
+
+            if(killed)
+            {
+                grant_exp(player, exp_reward);
+            }
+
+            return killed;
+        }
     }
 
     void spawn_room_enemies()
@@ -134,41 +194,111 @@ namespace game
         }
     }
 
-    void update_enemies(fixed player_x, fixed player_y)
+    void update_enemies(player_state& player)
     {
+        fixed player_x = player.x;
+        fixed player_y = player.y;
+
+        // tick_arcana_status/arcana_is_slow_skip_frame (arcana.h) are
+        // type-agnostic -- burn can kill any of these between hits (hence
+        // the exp grant here, same as a whip/Diana kill), and slow halves
+        // an entity's effective update rate without touching its own
+        // update_X. Not applied to the Bone Colossus below -- it has no
+        // arcana_status (see enemy.h).
         for(int i = 0; i < skeleton_active_count; ++i)
         {
-            update_skeleton(skeletons[i]);
+            if(tick_arcana_status(skeletons[i]))
+            {
+                grant_exp(player, difficulty::skeleton_exp_reward);
+            }
+
+            if(! arcana_is_slow_skip_frame(skeletons[i]))
+            {
+                update_skeleton(skeletons[i]);
+            }
         }
 
         for(int i = 0; i < bat_active_count; ++i)
         {
-            update_bat(bats[i], player_x, player_y);
+            if(tick_arcana_status(bats[i]))
+            {
+                grant_exp(player, difficulty::bat_exp_reward);
+            }
+
+            if(! arcana_is_slow_skip_frame(bats[i]))
+            {
+                update_bat(bats[i], player_x, player_y);
+            }
         }
 
         for(int i = 0; i < archer_active_count; ++i)
         {
-            update_archer(archers[i], player_x);
+            if(tick_arcana_status(archers[i]))
+            {
+                grant_exp(player, difficulty::archer_exp_reward);
+            }
+
+            if(! arcana_is_slow_skip_frame(archers[i]))
+            {
+                update_archer(archers[i], player_x);
+            }
         }
 
         for(int i = 0; i < zombie_active_count; ++i)
         {
-            update_zombie(zombies[i]);
+            if(tick_arcana_status(zombies[i]))
+            {
+                grant_exp(player, difficulty::zombie_exp_reward);
+            }
+
+            if(! arcana_is_slow_skip_frame(zombies[i]))
+            {
+                update_zombie(zombies[i]);
+            }
         }
 
         for(int i = 0; i < bone_pillar_active_count; ++i)
         {
-            update_bone_pillar(bone_pillars[i]);
+            if(tick_arcana_status(bone_pillars[i]))
+            {
+                grant_exp(player, difficulty::bone_pillar_exp_reward);
+            }
+
+            if(! arcana_is_slow_skip_frame(bone_pillars[i]))
+            {
+                update_bone_pillar(bone_pillars[i]);
+            }
         }
 
         for(int i = 0; i < fleaman_active_count; ++i)
         {
-            update_fleaman(fleamen[i]);
+            if(tick_arcana_status(fleamen[i]))
+            {
+                grant_exp(player, difficulty::fleaman_exp_reward);
+            }
+
+            if(! arcana_is_slow_skip_frame(fleamen[i]))
+            {
+                update_fleaman(fleamen[i]);
+            }
         }
 
         for(int i = 0; i < medusa_head_active_count; ++i)
         {
-            update_medusa_head(medusa_heads[i]);
+            if(tick_arcana_status(medusa_heads[i]))
+            {
+                grant_exp(player, difficulty::medusa_head_exp_reward);
+
+                // Continuous spawner (enemies.md) -- a kill isn't
+                // permanent, it just resets to its spawn edge after this
+                // cooldown, same as a whip/Diana kill below.
+                medusa_heads[i].respawn_timer = difficulty::medusa_head_respawn_cooldown_frames;
+            }
+
+            if(! arcana_is_slow_skip_frame(medusa_heads[i]))
+            {
+                update_medusa_head(medusa_heads[i]);
+            }
         }
 
         if(bone_colossus_active)
@@ -199,76 +329,83 @@ namespace game
 
     void apply_attacks_to_enemies(const attack_hitbox& hitbox, player_state& player)
     {
-        int power = current_attack_power(player);
+        // Mercury's damage bonus (if active) applies uniformly to every
+        // whip hit below, boss included -- only its on-hit burn/slow
+        // (applied per-type via apply_whip_with_arcana) and Diana's
+        // projectile are withheld from the Colossus (see enemy.h).
+        int power = arcana_boosted_attack_power(player, current_attack_power(player));
 
         for(int i = 0; i < skeleton_active_count; ++i)
         {
-            if(apply_whip_to_enemy(skeletons[i], skeleton_half_width, skeleton_half_height,
-                    difficulty::skeleton_defense, power, hitbox))
-            {
-                grant_exp(player, difficulty::skeleton_exp_reward);
-            }
+            apply_whip_with_arcana(skeletons[i], skeleton_half_width, skeleton_half_height,
+                    difficulty::skeleton_defense, power, hitbox, difficulty::skeleton_exp_reward, player);
+            apply_diana_with_arcana(skeletons[i], skeleton_half_width, skeleton_half_height,
+                    difficulty::skeleton_defense, difficulty::skeleton_exp_reward, player);
         }
 
         for(int i = 0; i < bat_active_count; ++i)
         {
-            if(apply_whip_to_enemy(bats[i], bat_half_width, bat_half_height, difficulty::bat_defense, power, hitbox))
-            {
-                grant_exp(player, difficulty::bat_exp_reward);
-            }
+            apply_whip_with_arcana(bats[i], bat_half_width, bat_half_height, difficulty::bat_defense, power,
+                    hitbox, difficulty::bat_exp_reward, player);
+            apply_diana_with_arcana(bats[i], bat_half_width, bat_half_height, difficulty::bat_defense,
+                    difficulty::bat_exp_reward, player);
         }
 
         for(int i = 0; i < archer_active_count; ++i)
         {
-            if(apply_whip_to_enemy(archers[i], archer_half_width, archer_half_height,
-                    difficulty::archer_defense, power, hitbox))
-            {
-                grant_exp(player, difficulty::archer_exp_reward);
-            }
+            apply_whip_with_arcana(archers[i], archer_half_width, archer_half_height,
+                    difficulty::archer_defense, power, hitbox, difficulty::archer_exp_reward, player);
+            apply_diana_with_arcana(archers[i], archer_half_width, archer_half_height,
+                    difficulty::archer_defense, difficulty::archer_exp_reward, player);
         }
 
         for(int i = 0; i < zombie_active_count; ++i)
         {
-            if(apply_whip_to_enemy(zombies[i], zombie_half_width, zombie_half_height,
-                    difficulty::zombie_defense, power, hitbox))
-            {
-                grant_exp(player, difficulty::zombie_exp_reward);
-            }
+            apply_whip_with_arcana(zombies[i], zombie_half_width, zombie_half_height,
+                    difficulty::zombie_defense, power, hitbox, difficulty::zombie_exp_reward, player);
+            apply_diana_with_arcana(zombies[i], zombie_half_width, zombie_half_height,
+                    difficulty::zombie_defense, difficulty::zombie_exp_reward, player);
         }
 
         for(int i = 0; i < bone_pillar_active_count; ++i)
         {
-            if(apply_whip_to_enemy(bone_pillars[i], bone_pillar_half_width, bone_pillar_half_height,
-                    difficulty::bone_pillar_defense, power, hitbox))
-            {
-                grant_exp(player, difficulty::bone_pillar_exp_reward);
-            }
+            apply_whip_with_arcana(bone_pillars[i], bone_pillar_half_width, bone_pillar_half_height,
+                    difficulty::bone_pillar_defense, power, hitbox, difficulty::bone_pillar_exp_reward, player);
+            apply_diana_with_arcana(bone_pillars[i], bone_pillar_half_width, bone_pillar_half_height,
+                    difficulty::bone_pillar_defense, difficulty::bone_pillar_exp_reward, player);
         }
 
         for(int i = 0; i < fleaman_active_count; ++i)
         {
-            if(apply_whip_to_enemy(fleamen[i], fleaman_half_width, fleaman_half_height,
-                    difficulty::fleaman_defense, power, hitbox))
-            {
-                grant_exp(player, difficulty::fleaman_exp_reward);
-            }
+            apply_whip_with_arcana(fleamen[i], fleaman_half_width, fleaman_half_height,
+                    difficulty::fleaman_defense, power, hitbox, difficulty::fleaman_exp_reward, player);
+            apply_diana_with_arcana(fleamen[i], fleaman_half_width, fleaman_half_height,
+                    difficulty::fleaman_defense, difficulty::fleaman_exp_reward, player);
         }
 
         for(int i = 0; i < medusa_head_active_count; ++i)
         {
-            if(apply_whip_to_enemy(medusa_heads[i], medusa_head_half_width, medusa_head_half_height,
-                    difficulty::medusa_head_defense, power, hitbox))
-            {
-                grant_exp(player, difficulty::medusa_head_exp_reward);
+            // Continuous spawner (enemies.md) — a kill isn't permanent, it
+            // just resets to its spawn edge after this cooldown, whichever
+            // of the whip/Diana below is what landed it.
+            bool killed = apply_whip_with_arcana(medusa_heads[i], medusa_head_half_width,
+                    medusa_head_half_height, difficulty::medusa_head_defense, power, hitbox,
+                    difficulty::medusa_head_exp_reward, player);
 
-                // Continuous spawner (enemies.md) — a kill isn't permanent,
-                // it just resets to its spawn edge after this cooldown.
+            killed = apply_diana_with_arcana(medusa_heads[i], medusa_head_half_width, medusa_head_half_height,
+                    difficulty::medusa_head_defense, difficulty::medusa_head_exp_reward, player) || killed;
+
+            if(killed)
+            {
                 medusa_heads[i].respawn_timer = difficulty::medusa_head_respawn_cooldown_frames;
             }
         }
 
         if(bone_colossus_active)
         {
+            // Bare apply_whip_to_enemy, deliberately -- no Mercury on-hit
+            // status and no Diana projectile against the boss (see
+            // enemy.h's comment on bone_colossus_state).
             if(apply_whip_to_enemy(bone_colossus, bone_colossus_half_width, bone_colossus_half_height,
                     difficulty::bone_colossus_defense, power, hitbox))
             {

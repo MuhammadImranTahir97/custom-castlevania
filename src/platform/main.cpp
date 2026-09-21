@@ -549,6 +549,12 @@ int main()
     bn::sprite_ptr hitbox_sprite = bn::sprite_items::hitbox.create_sprite(0, 0);
     hitbox_sprite.set_visible(false);
 
+    // Diana's Arcana shot (arcana.h) — reuses "arrow" (already loaded for
+    // the Skeleton Archer) rather than a new sprite item, same
+    // palette-budget reasoning as the M3 enemies further below.
+    bn::sprite_ptr arcana_projectile_sprite = bn::sprite_items::arrow.create_sprite(0, 0);
+    arcana_projectile_sprite.set_visible(false);
+
     // Fixed sprite pools, one per game::max_enemies_per_type slot per type.
     bn::sprite_ptr skeleton_sprites[game::max_enemies_per_type] = {
         bn::sprite_items::skeleton.create_sprite(0, 0), bn::sprite_items::skeleton.create_sprite(0, 0),
@@ -823,6 +829,8 @@ int main()
         input.attack_held = bn::keypad::held(bn::keypad::key_type::B);
         input.dodge_held = bn::keypad::held(bn::keypad::key_type::R);
         input.swap_held = bn::keypad::held(bn::keypad::key_type::L);
+        input.arcana_cast_held = bn::keypad::held(bn::keypad::key_type::UP);
+        input.arcana_cycle_held = bn::keypad::held(bn::keypad::key_type::DOWN);
 
         game::update_player(player, input);
         game::update_world(player);
@@ -847,7 +855,7 @@ int main()
             }
         }
 
-        game::update_enemies(player.x, player.y);
+        game::update_enemies(player);
 
         game::attack_hitbox hitbox = game::get_attack_hitbox(player);
         game::apply_attacks_to_enemies(hitbox, player);
@@ -879,6 +887,13 @@ int main()
         if(hitbox.active)
         {
             set_world_position(hitbox_sprite, hitbox.x, hitbox.y);
+        }
+
+        arcana_projectile_sprite.set_visible(player.arcana_projectile.active);
+
+        if(player.arcana_projectile.active)
+        {
+            set_world_position(arcana_projectile_sprite, player.arcana_projectile.x, player.arcana_projectile.y);
         }
 
         if(game::level::current_room_is_save_room())

@@ -1,36 +1,23 @@
 #pragma once
 
+#include "arcana_types.h"
 #include "difficulty.h"
 #include "fixed.h"
 #include "player.h"
+#include "projectile.h"
 
 namespace game
 {
-    // Both the bone and the arrow render as 8x8 placeholder sprites.
-    constexpr int projectile_half_width = 4;
-    constexpr int projectile_half_height = 4;
-
-    // A thrown/arcing projectile. Shared by the skeleton's bone and the
-    // archer's arrow — same physics (gravity, lifetime), different tuning.
-    struct arc_projectile
-    {
-        bool active = false;
-        fixed x = 0;
-        fixed y = 0;
-        fixed velocity_x = 0;
-        fixed velocity_y = 0;
-        int lifetime_frames = 0;
-    };
-
-    void launch_arc_projectile(arc_projectile& proj, fixed x, fixed y, fixed velocity_x, fixed velocity_y);
-    void update_arc_projectile(arc_projectile& proj, fixed gravity, int lifetime_limit);
-
     // Applies the player's whip hitbox to any enemy with .x, .y, .hp, .alive
     // and .prev_attack_active fields, once per swing. Returns true if this
     // call is what killed it (so the caller can grant EXP exactly once).
+    // out_damage_dealt/out_hit are optional -- arcana.h's Mercury on-hit
+    // effect (burn/slow/lifesteal) needs to know the damage of a hit that
+    // didn't kill, which the bool return alone can't express.
     template<typename EnemyState>
     bool apply_whip_to_enemy(EnemyState& enemy, int half_width, int half_height, int defense,
-            int attack_power, const attack_hitbox& hitbox)
+            int attack_power, const attack_hitbox& hitbox, int* out_damage_dealt = nullptr,
+            bool* out_hit = nullptr)
     {
         bool attack_just_started = hitbox.active && ! enemy.prev_attack_active;
         enemy.prev_attack_active = hitbox.active;
@@ -51,6 +38,16 @@ namespace game
         if(overlap_x && overlap_y)
         {
             int damage = apply_defense(attack_power, defense);
+
+            if(out_damage_dealt)
+            {
+                *out_damage_dealt = damage;
+            }
+
+            if(out_hit)
+            {
+                *out_hit = true;
+            }
 
             enemy.hp -= damage;
 
@@ -110,6 +107,7 @@ namespace game
         int throw_timer = 0;
         bool prev_attack_active = false;
         arc_projectile bone;
+        arcana_status status; // arcana.h -- burn/slow from the player's Arcana
     };
 
     void init_skeleton(skeleton_state& skeleton, fixed spawn_x, fixed spawn_y);
@@ -130,6 +128,7 @@ namespace game
         bool prev_attack_active = false;
         bool triggered = false; // idles until the player is in range, then swoops permanently
         int swoop_timer = 0;    // drives the erratic wiggle
+        arcana_status status;   // arcana.h -- burn/slow from the player's Arcana
     };
 
     void init_bat(bat_state& bat, fixed spawn_x, fixed spawn_y);
@@ -150,6 +149,7 @@ namespace game
         bool prev_attack_active = false;
         int shoot_timer = 0;
         arc_projectile arrow;
+        arcana_status status; // arcana.h -- burn/slow from the player's Arcana
     };
 
     void init_archer(archer_state& archer, fixed spawn_x, fixed spawn_y);
@@ -170,6 +170,7 @@ namespace game
         bool alive = true;
         bool prev_attack_active = false;
         bool falling = false; // walked off a ledge — unlike the Skeleton, it doesn't turn around
+        arcana_status status; // arcana.h -- burn/slow from the player's Arcana
     };
 
     void init_zombie(zombie_state& zombie, fixed spawn_x, fixed spawn_y);
@@ -192,6 +193,7 @@ namespace game
         bool prev_attack_active = false;
         int fire_timer = 0;
         arc_projectile fireball;
+        arcana_status status; // arcana.h -- burn/slow from the player's Arcana
     };
 
     void init_bone_pillar(bone_pillar_state& pillar, fixed spawn_x, fixed spawn_y, int facing);
@@ -213,6 +215,7 @@ namespace game
         bool prev_attack_active = false;
         bool grounded = true;
         int hop_timer = 0; // frames left grounded before the next random hop
+        arcana_status status; // arcana.h -- burn/slow from the player's Arcana
     };
 
     void init_fleaman(fleaman_state& fleaman, fixed spawn_x, fixed spawn_y);
@@ -239,6 +242,7 @@ namespace game
         bool prev_attack_active = false;
         int wave_timer = 0;
         int respawn_timer = 0; // >0 while waiting to respawn after death/off-screen
+        arcana_status status;  // arcana.h -- burn/slow from the player's Arcana
     };
 
     void init_medusa_head(medusa_head_state& medusa, fixed spawn_x, fixed spawn_y, int facing);
@@ -287,6 +291,10 @@ namespace game
         int hp = 0;
         bool alive = true;
         bool prev_attack_active = false; // for apply_whip_to_enemy
+
+        // No arcana_status here, deliberately -- arcana.md's balance rule
+        // "no combo may trivialise a boss" means Mercury/Diana's burn/slow
+        // don't touch the Colossus; its already-tuned fight stays untouched.
 
         bone_colossus_attack attack = bone_colossus_attack::none;
         int attack_timer = 0;   // frames since the current attack began
