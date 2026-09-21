@@ -439,6 +439,14 @@ namespace game
         bool dodge_pressed = input.dodge_held && ! player.prev_dodge_held;
         bool swap_pressed = input.swap_held && ! player.prev_swap_held;
 
+        // SPEC.md's control map: up+attack is reserved for a future
+        // subweapon system -- not built yet, so it's withheld here rather
+        // than falling through to a whip swing, leaving the input clean for
+        // whatever calls it later. down+attack is Arcana (arcana_pressed).
+        // Attack alone, with neither held, is the ordinary whip.
+        bool arcana_pressed = attack_pressed && input.down_held;
+        bool whip_attack_pressed = attack_pressed && ! input.up_held && ! input.down_held;
+
         if(swap_pressed)
         {
             player.character = player.character == character_kind::hunter
@@ -455,16 +463,16 @@ namespace game
         {
 
         case action_kind::attack:
-            update_attack(player, input, attack_pressed, dodge_pressed);
+            update_attack(player, input, whip_attack_pressed, dodge_pressed);
             break;
 
         case action_kind::dodge:
-            update_dodge(player, input, attack_pressed, dodge_pressed);
+            update_dodge(player, input, whip_attack_pressed, dodge_pressed);
             break;
 
         case action_kind::none:
         default:
-            update_normal(player, input, attack_pressed, dodge_pressed);
+            update_normal(player, input, whip_attack_pressed, dodge_pressed);
             break;
         }
 
@@ -475,7 +483,7 @@ namespace game
 
         update_mp_regen(player);
         update_invuln(player);
-        update_player_arcana(player, input);
+        update_player_arcana(player, arcana_pressed);
 
         player.prev_jump_held = input.jump_held;
         player.prev_attack_held = input.attack_held;

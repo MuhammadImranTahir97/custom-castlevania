@@ -317,6 +317,7 @@ namespace
     }
 
     constexpr int pause_tab_count = 5; // Status, Arcana, Items, Map, Options
+    constexpr int arcana_tab_index = 1;
     constexpr int map_tab_index = 3;
 
     // Screen-space (not world-space — the pause menu isn't affected by the
@@ -332,30 +333,59 @@ namespace
         out_y = pos.y * scale_px + offset_y_px;
     }
 
+    // The Arcana tab's 5 selectable cards (SPEC.md's control map): index
+    // 0-1 are the 2 Action cards (Mercury, Diana), 2-4 are the 3 Attribute
+    // cards (Salamander, Serpent, Mandragora) -- arcana_types.h's enum
+    // orders match these slots directly (mercury=0/diana=1,
+    // salamander=0/serpent=1/mandragora=2 -> +2 for the row offset).
+    constexpr int arcana_card_count = 5;
+    constexpr int arcana_action_x[2] = { -40, 8 };
+    constexpr int arcana_attribute_x[3] = { -56, -8, 40 };
+    constexpr int arcana_action_y = -16;
+    constexpr int arcana_attribute_y = 24;
+
+    void arcana_card_screen_position(int card_index, int& out_x, int& out_y)
+    {
+        if(card_index < 2)
+        {
+            out_x = arcana_action_x[card_index];
+            out_y = arcana_action_y;
+        }
+        else
+        {
+            out_x = arcana_attribute_x[card_index - 2];
+            out_y = arcana_attribute_y;
+        }
+    }
+
     // Grey-box pause menu (SPEC.md section 9: 5 tabs, shoulder buttons
     // cycle). Status is covered by the HUD already on screen (HP/MP) —
-    // nothing extra to add there. Arcana/Items/Options are structural
-    // only: none of those are systems in the game yet (no Arcana combos,
-    // no inventory, no settings), so there's nothing real to show, and
-    // inventing placeholder data for them would be more misleading than
-    // an empty tab. Map is where the real content is: explored rooms,
-    // save points, the current room, and sealed-door markers (the Bone
-    // Colossus's arena is the only thing that seals doors right now).
+    // nothing extra to add there. Items/Options are structural only:
+    // neither is a system in the game yet (no inventory, no settings), so
+    // there's nothing real to show, and inventing placeholder data for
+    // them would be more misleading than an empty tab. Arcana and Map are
+    // where the real content is: Arcana picks the equipped combo (SPEC.md's
+    // control map moved loadout selection here, out of gameplay), Map
+    // shows explored rooms, save points, the current room, and sealed-door
+    // markers (the Bone Colossus's arena is the only thing that seals
+    // doors right now).
     //
-    // cursor_sprite doubles as both "which of the 5 tabs is active" (any
-    // tab but Map) and "current room" (Map tab) — one sprite for both
-    // keeps this within the sprite budget alongside everything else
-    // already on screen (see the palette-budget comments elsewhere in
-    // this file for why reusing sprites, not adding new ones, is the
-    // house style here).
+    // cursor_sprite triples as "which of the 5 tabs is active" (Status/
+    // Items/Options), "current room" (Map tab) and "highlighted card"
+    // (Arcana tab) — one sprite for all three keeps this within the
+    // sprite budget alongside everything else already on screen (see the
+    // palette-budget comments elsewhere in this file for why reusing
+    // sprites, not adding new ones, is the house style here).
     void render_pause_menu(int tab, bn::sprite_ptr& cursor_sprite,
             bn::sprite_ptr room_sprites[game::map_room_count], bn::sprite_ptr seal_sprites[2],
-            int pause_blink_frame)
+            int pause_blink_frame, const game::player_state& player, int arcana_cursor,
+            bn::sprite_ptr arcana_card_sprites[arcana_card_count], bn::sprite_ptr arcana_equipped_sprites[2])
     {
         constexpr int tab_slot_x[pause_tab_count] = { -96, -48, 0, 48, 96 };
         constexpr int tab_slot_y = -64;
 
         bool on_map_tab = tab == map_tab_index;
+        bool on_arcana_tab = tab == arcana_tab_index;
 
         for(int i = 0; i < game::map_room_count; ++i)
         {
@@ -403,6 +433,38 @@ namespace
             }
         }
 
+        for(int i = 0; i < arcana_card_count; ++i)
+        {
+            arcana_card_sprites[i].set_visible(on_arcana_tab);
+
+            if(on_arcana_tab)
+            {
+                int x;
+                int y;
+                arcana_card_screen_position(i, x, y);
+                arcana_card_sprites[i].set_position(x, y);
+            }
+        }
+
+        arcana_equipped_sprites[0].set_visible(on_arcana_tab);
+        arcana_equipped_sprites[1].set_visible(on_arcana_tab);
+
+        if(on_arcana_tab)
+        {
+            int action_x;
+            int action_y;
+            int attribute_x;
+            int attribute_y;
+            arcana_card_screen_position(static_cast<int>(player.arcana.action), action_x, action_y);
+            arcana_card_screen_position(2 + static_cast<int>(player.arcana.attribute), attribute_x, attribute_y);
+
+            // A small marker below each equipped card, distinct from
+            // cursor_sprite's own position (which one of the 5 is
+            // highlighted, not which two are equipped).
+            arcana_equipped_sprites[0].set_position(action_x, action_y + 12);
+            arcana_equipped_sprites[1].set_position(attribute_x, attribute_y + 12);
+        }
+
         if(on_map_tab)
         {
             int current = game::level::current_room_index();
@@ -419,6 +481,14 @@ namespace
             {
                 cursor_sprite.set_visible(false);
             }
+        }
+        else if(on_arcana_tab)
+        {
+            int x;
+            int y;
+            arcana_card_screen_position(arcana_cursor, x, y);
+            cursor_sprite.set_position(x, y);
+            cursor_sprite.set_visible(true);
         }
         else
         {
@@ -646,6 +716,23 @@ int main()
         bn::sprite_items::arrow.create_sprite(0, 0),
     };
 
+    // Arcana tab (SPEC.md's control map): "ground" for the 5 selectable
+    // cards (2 Action, 3 Attribute — reused the same way the room-tile
+    // pool above reuses it, still just a grey box), "save_point" for the
+    // two small "equipped" markers under the current loadout — same
+    // reused-sprite reasoning as map_room_sprites above.
+    bn::sprite_ptr arcana_card_sprites[arcana_card_count] = {
+        bn::sprite_items::ground.create_sprite(0, 0),
+        bn::sprite_items::ground.create_sprite(0, 0),
+        bn::sprite_items::ground.create_sprite(0, 0),
+        bn::sprite_items::ground.create_sprite(0, 0),
+        bn::sprite_items::ground.create_sprite(0, 0),
+    };
+    bn::sprite_ptr arcana_equipped_sprites[2] = {
+        bn::sprite_items::save_point.create_sprite(0, 0),
+        bn::sprite_items::save_point.create_sprite(0, 0),
+    };
+
     for(bn::sprite_ptr& s : skeleton_sprites) { s.set_visible(false); }
     for(bn::sprite_ptr& s : bone_sprites) { s.set_visible(false); }
     for(bn::sprite_ptr& s : bat_sprites) { s.set_visible(false); }
@@ -662,6 +749,8 @@ int main()
     for(bn::sprite_ptr& s : map_room_sprites) { s.set_visible(false); }
     pause_cursor_sprite.set_visible(false);
     for(bn::sprite_ptr& s : map_seal_sprites) { s.set_visible(false); }
+    for(bn::sprite_ptr& s : arcana_card_sprites) { s.set_visible(false); }
+    for(bn::sprite_ptr& s : arcana_equipped_sprites) { s.set_visible(false); }
 
     bn::sprite_ptr save_point_sprite = bn::sprite_items::save_point.create_sprite(0, 0);
     save_point_sprite.set_visible(false);
@@ -722,6 +811,7 @@ int main()
     bool paused = false;
     int pause_tab = 0;
     int pause_blink_frame = 0;
+    int arcana_cursor = 0; // which of the Arcana tab's 5 cards is highlighted
 
     // DEBUG ONLY — see render_debug_warp_screen's comment.
     bool debug_warp_active = false;
@@ -800,7 +890,13 @@ int main()
             {
                 for(bn::sprite_ptr& s : map_room_sprites) { s.set_visible(false); }
                 for(bn::sprite_ptr& s : map_seal_sprites) { s.set_visible(false); }
+                for(bn::sprite_ptr& s : arcana_card_sprites) { s.set_visible(false); }
+                for(bn::sprite_ptr& s : arcana_equipped_sprites) { s.set_visible(false); }
                 pause_cursor_sprite.set_visible(false);
+            }
+            else
+            {
+                arcana_cursor = 0;
             }
         }
 
@@ -815,9 +911,38 @@ int main()
                 pause_tab = (pause_tab + 1) % pause_tab_count;
             }
 
+            // Arcana tab (SPEC.md's control map): LEFT/RIGHT moves the
+            // card cursor, A equips whichever of the 5 it's on -- into
+            // the action slot for cards 0-1, the attribute slot for 2-4.
+            // Same LEFT/RIGHT-moves-a-cursor/A-confirms shape as the debug
+            // warp screen above, just scoped to this tab instead of a
+            // full-screen mode.
+            if(pause_tab == arcana_tab_index)
+            {
+                if(bn::keypad::pressed(bn::keypad::key_type::LEFT))
+                {
+                    arcana_cursor = (arcana_cursor + arcana_card_count - 1) % arcana_card_count;
+                }
+                else if(bn::keypad::pressed(bn::keypad::key_type::RIGHT))
+                {
+                    arcana_cursor = (arcana_cursor + 1) % arcana_card_count;
+                }
+                else if(bn::keypad::pressed(bn::keypad::key_type::A))
+                {
+                    if(arcana_cursor < 2)
+                    {
+                        player.arcana.action = static_cast<game::arcana_action>(arcana_cursor);
+                    }
+                    else
+                    {
+                        player.arcana.attribute = static_cast<game::arcana_attribute>(arcana_cursor - 2);
+                    }
+                }
+            }
+
             ++pause_blink_frame;
             render_pause_menu(pause_tab, pause_cursor_sprite, map_room_sprites, map_seal_sprites,
-                    pause_blink_frame);
+                    pause_blink_frame, player, arcana_cursor, arcana_card_sprites, arcana_equipped_sprites);
             bn::core::update();
             continue;
         }
@@ -829,8 +954,8 @@ int main()
         input.attack_held = bn::keypad::held(bn::keypad::key_type::B);
         input.dodge_held = bn::keypad::held(bn::keypad::key_type::R);
         input.swap_held = bn::keypad::held(bn::keypad::key_type::L);
-        input.arcana_cast_held = bn::keypad::held(bn::keypad::key_type::UP);
-        input.arcana_cycle_held = bn::keypad::held(bn::keypad::key_type::DOWN);
+        input.up_held = bn::keypad::held(bn::keypad::key_type::UP);
+        input.down_held = bn::keypad::held(bn::keypad::key_type::DOWN);
 
         game::update_player(player, input);
         game::update_world(player);

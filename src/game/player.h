@@ -74,13 +74,13 @@ namespace game
         bool prev_dodge_held = false;
 
         // Arcana (SPEC.md section 4 / arcana.md) -- M3: 2 Action x 3
-        // Attribute (6 combos). See arcana.h for the actual effects.
+        // Attribute (6 combos). See arcana.h for the actual effects. Loadout
+        // is picked from the pause menu's Arcana tab (SPEC.md's control
+        // map), not in gameplay -- see main.cpp's render_pause_menu.
         arcana_loadout arcana;
-        bool arcana_active = false;      // Mercury: true while sustained and affordable this frame
+        bool arcana_active = false;      // Mercury: toggled on/off by down+attack, drains MP/s while true
         int arcana_mp_drain_counter = 0; // sub-frame accumulator for Mercury's per-second MP drain
         arc_projectile arcana_projectile; // Diana's in-flight shot
-        bool prev_arcana_cast_held = false;
-        bool prev_arcana_cycle_held = false;
     };
 
     struct attack_hitbox

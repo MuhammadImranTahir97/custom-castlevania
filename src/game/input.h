@@ -13,10 +13,12 @@ namespace game
         bool dodge_held = false;
         bool swap_held = false;
 
-        // Arcana (arcana.h). Every other GBA button is already spoken for
-        // (A jump, B attack, L swap, R dodge, START save, SELECT pause) --
-        // UP/DOWN were the only ones free.
-        bool arcana_cast_held = false;  // UP -- Mercury: held to sustain. Diana: edge-press to fire.
-        bool arcana_cycle_held = false; // DOWN -- edge-press cycles the 6 combos, one flat list
+        // Up/Down alone move nothing (this is a side-scroller) -- they're
+        // only meaningful as modifiers held alongside attack_held. See the
+        // control map in SPEC.md section 9: up+attack is reserved for a
+        // future subweapon system, down+attack is Arcana. update_player
+        // (player.cpp) does the actual combining/edge-detection.
+        bool up_held = false;
+        bool down_held = false;
     };
 }

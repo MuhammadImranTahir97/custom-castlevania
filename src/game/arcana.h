@@ -34,14 +34,6 @@ namespace game
         int lifesteal_percent = 0;
     };
 
-    // Cycles to the next of the 6 combos, wrapping (Mercury x3 attributes,
-    // then Diana x3). The "single button for everything" fix (SPEC.md
-    // section 4's "fixes to CotM's version") means the other 5 combos need
-    // no controls of their own beyond this cheap cycle -- a real
-    // always-visible 10x10 menu (arcana.md's own "menu presentation"
-    // section) is later polish, not needed to prove the 6 combos work.
-    void cycle_arcana_loadout(arcana_loadout& loadout);
-
     // Mercury's weapon-damage bonus for the given attribute, as a percent
     // (0 = no change). Applied to current_attack_power before a whip hit is
     // resolved.
@@ -55,10 +47,14 @@ namespace game
     // Diana's direct hit power for the given INT, before defense.
     int arcana_diana_hit_power(int player_intelligence);
 
-    // Advances the player's Arcana state from this frame's input: cycling
-    // the loadout, sustaining/draining MP for Mercury, or firing Diana's
-    // projectile on a fresh press. Call once per frame from update_player.
-    void update_player_arcana(player_state& player, const input_state& input);
+    // Advances the player's Arcana state for this frame. arcana_pressed is
+    // the down+attack edge (SPEC.md's control map) -- Mercury toggles on/off
+    // on that press, Diana fires on it; either way it's a tap, never a hold.
+    // Ticks Mercury's per-second MP drain and Diana's in-flight projectile
+    // every frame regardless of arcana_pressed. Call once per frame from
+    // update_player. Loadout (which combo is equipped) isn't set here -- see
+    // player.arcana's own comment.
+    void update_player_arcana(player_state& player, bool arcana_pressed);
 
     // Combo effect (burn/slow/lifesteal) for the given action+attribute.
     arcana_effect get_arcana_effect(arcana_action action, arcana_attribute attribute);

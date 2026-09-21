@@ -597,6 +597,37 @@ track is fine for the first eight months.
 
 ## 9. Saves & UI
 
+### Controls — locked
+
+The complete GBA control map. Every button is claimed; anything new goes
+through the pause menu, not a new gameplay button. Before adding an input
+to any future system, check here first rather than reusing UP/DOWN or
+another button ad hoc — that's exactly what put this table here.
+
+| Input | Context | Action |
+|---|---|---|
+| D-pad Left/Right | Gameplay | Move |
+| D-pad Up/Down alone | Gameplay | Nothing — only meaningful combined with Attack, below |
+| A | Gameplay | Jump (tap = short hop, hold = full height) |
+| B | Gameplay | Attack (whip / twin blades) |
+| Up + B | Gameplay | Subweapon — **reserved, not yet built** |
+| Down + B | Gameplay | Arcana — tap fires a per-use combo; tap **toggles** a sustained one on/off (never hold) |
+| L | Gameplay | Swap character (Hunter ↔ Rival), instant |
+| R | Gameplay | Dodge roll / dash |
+| START | Gameplay, standing in a save room | Save |
+| SELECT | Gameplay | Open/close the pause menu |
+| L + R + START (held) | Gameplay | **Debug only** — toggle the room-warp screen |
+| L / R | Pause menu | Cycle the 5 tabs |
+| D-pad Left/Right | Pause menu, Arcana tab | Move the card cursor across the 5 owned/visible cards |
+| A | Pause menu, Arcana tab | Equip the highlighted card (Action or Attribute) |
+| D-pad Left/Right | Debug room-warp screen | Pick a room |
+| A / B | Debug room-warp screen | Confirm warp / cancel |
+
+**Why combo selection lives in the pause menu, not a gameplay button:**
+100 Arcana combos can't be cycled one-button-at-a-time in real time — the
+pause menu's Arcana tab (10×10 grid, section 4) is the actual card picker.
+Down+B only *casts* whatever is currently equipped there.
+
 ### Save system
 
 | | |

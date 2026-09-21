@@ -254,6 +254,45 @@ Combined with `game.mjs status` staying alive across `key` presses, this
 is enough to smoke-test "does it boot and does input not crash/hang it,"
 just not "does it look right."
 
+## 10. The actual fix: mGBA's own F12 screenshot via PostMessage, not desktop capture (resolved)
+
+**Problem:** #7/#9 both concluded desktop-capture-based `shot` can't see
+mGBA in this sandbox, no matter how focus is forced. Needed a different
+way entirely to verify gameplay visually.
+
+**Fix:** skip desktop capture altogether. mGBA has its own built-in
+screenshot (default key F12, `Audio/Video > Take Screenshot` in the Qt
+frontend) that renders straight from its own framebuffer to a PNG next to
+the ROM (`cot-hack-0.png`, incrementing) -- it never touches the OS
+compositor, so the sandboxed-capture bug can't reach it. Trigger it with
+a direct `PostMessage(hwnd, WM_KEYDOWN/WM_KEYUP, VK_F12, 0)` to mGBA's own
+window handle (`Get-Process | Where MainWindowTitle -like "*mGBA*"`) --
+**not** `SetForegroundWindow`/`SendKeys`/the `game-development` skill's
+`key` command, none of which reliably reach mGBA here (see #8/#9 -- this
+sandbox's own harness appears to hold or reclaim real OS foreground focus
+itself, which those all depend on). `PostMessage` needs no focus at all;
+it posts straight to the target window's own message queue.
+
+The same `PostMessage(WM_KEYDOWN/WM_KEYUP, <VK code>, ...)` approach also
+works for driving actual gameplay input (arrows, and mGBA's default
+X/Z/A/S/Enter/Backspace for A/B/L/R/Start/Select -- see
+`AppData/Roaming/mGBA/config.ini`'s `[gba.input.QT_K]` section for the
+current bindings), not just F12.
+
+**Gotcha -- batch every action into one PowerShell process:** the first
+`PostMessage` call after launching a *new* `powershell.exe` process
+against mGBA's hwnd works; a second, separate `powershell.exe` invocation
+against the same still-running mGBA window silently does nothing (no
+error, no file, no input effect) even though the window is confirmed
+alive and responding. Cause not fully root-caused, but reproducible and
+easy to work around: write one script that takes a whole action sequence
+(`DOWN:key` / `UP:key` / `TAP:key` / `WAIT:ms` / `SHOT`, each pair a few
+tens of ms apart) and run it **once** per mGBA session, rather than
+issuing separate PowerShell calls per action/screenshot. Confirmed
+working end-to-end this way: booting to the slot-select screen, picking a
+slot, moving into gameplay, and navigating a menu (LEFT/RIGHT + A) all in
+one batched invocation, with a screenshot at each step.
+
 ## Net result
 
 None of steps 1-6 required installing anything or touching files outside

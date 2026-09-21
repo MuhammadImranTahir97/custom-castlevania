@@ -2,24 +2,6 @@
 
 namespace game
 {
-    void cycle_arcana_loadout(arcana_loadout& loadout)
-    {
-        if(loadout.attribute == arcana_attribute::mandragora)
-        {
-            loadout.attribute = arcana_attribute::salamander;
-            loadout.action = loadout.action == arcana_action::mercury
-                    ? arcana_action::diana : arcana_action::mercury;
-        }
-        else if(loadout.attribute == arcana_attribute::salamander)
-        {
-            loadout.attribute = arcana_attribute::serpent;
-        }
-        else
-        {
-            loadout.attribute = arcana_attribute::mandragora;
-        }
-    }
-
     int arcana_mercury_damage_percent(arcana_attribute attribute)
     {
         switch(attribute)
@@ -70,61 +52,57 @@ namespace game
         }
     }
 
-    void update_player_arcana(player_state& player, const input_state& input)
+    void update_player_arcana(player_state& player, bool arcana_pressed)
     {
-        bool cycle_pressed = input.arcana_cycle_held && ! player.prev_arcana_cycle_held;
-        player.prev_arcana_cycle_held = input.arcana_cycle_held;
-
-        if(cycle_pressed)
-        {
-            cycle_arcana_loadout(player.arcana);
-        }
-
-        bool cast_pressed = input.arcana_cast_held && ! player.prev_arcana_cast_held;
-        player.prev_arcana_cast_held = input.arcana_cast_held;
-
-        // Kept alive/updated regardless of the current loadout -- switching
-        // away from Diana mid-flight (cycle_pressed above) shouldn't freeze
-        // or teleport a shot already in the air.
+        // Kept alive/updated regardless of the current loadout or action
+        // state -- switching loadouts in the pause menu, or attacking/
+        // dodging, mid-flight shouldn't freeze or teleport a shot already
+        // in the air.
         update_arc_projectile(player.arcana_projectile, 0, difficulty::arcana_diana_projectile_lifetime_frames);
 
-        if(player.arcana.action == arcana_action::mercury)
+        if(arcana_pressed)
         {
-            player.arcana_active = input.arcana_cast_held && player.mp > 0;
-
-            if(player.arcana_active)
+            if(player.arcana.action == arcana_action::mercury)
             {
-                player.arcana_mp_drain_counter += difficulty::arcana_mercury_mp_cost_per_second;
-
-                if(player.arcana_mp_drain_counter >= 60)
+                // Toggle, not hold (locked by SPEC.md's control map).
+                if(player.arcana_active)
                 {
-                    player.arcana_mp_drain_counter -= 60;
-                    --player.mp;
-
-                    if(player.mp <= 0)
-                    {
-                        player.mp = 0;
-                        player.arcana_active = false;
-                    }
+                    player.arcana_active = false;
+                }
+                else if(player.mp > 0)
+                {
+                    player.arcana_active = true;
                 }
             }
-            else
+            else if(player.mp >= difficulty::arcana_diana_mp_cost_per_use && ! player.arcana_projectile.active)
             {
-                player.arcana_mp_drain_counter = 0;
+                // Diana -- per-use, fire-and-forget straight shot.
+                player.mp -= difficulty::arcana_diana_mp_cost_per_use;
+                fixed velocity_x = player.facing * difficulty::arcana_diana_projectile_speed;
+                launch_arc_projectile(player.arcana_projectile, player.x, player.y, velocity_x, 0);
             }
+        }
 
+        if(player.arcana.action != arcana_action::mercury || ! player.arcana_active)
+        {
+            player.arcana_mp_drain_counter = 0;
             return;
         }
 
-        // Diana -- per-use, fire-and-forget straight shot.
-        player.arcana_active = false;
+        // Mercury's sustained drain -- runs every frame while toggled on,
+        // independent of whether this is the press that turned it on.
+        player.arcana_mp_drain_counter += difficulty::arcana_mercury_mp_cost_per_second;
 
-        if(cast_pressed && player.mp >= difficulty::arcana_diana_mp_cost_per_use
-                && ! player.arcana_projectile.active)
+        if(player.arcana_mp_drain_counter >= 60)
         {
-            player.mp -= difficulty::arcana_diana_mp_cost_per_use;
-            fixed velocity_x = player.facing * difficulty::arcana_diana_projectile_speed;
-            launch_arc_projectile(player.arcana_projectile, player.x, player.y, velocity_x, 0);
+            player.arcana_mp_drain_counter -= 60;
+            --player.mp;
+
+            if(player.mp <= 0)
+            {
+                player.mp = 0;
+                player.arcana_active = false;
+            }
         }
     }
 }
