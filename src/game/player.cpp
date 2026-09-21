@@ -333,11 +333,17 @@ namespace game
             movement_tunables mt = tunables_for(player.character);
             attack_tunables at = attack_tunables_for(player.character);
 
+            // Buffered here too, not just in update_normal -- otherwise a
+            // jump pressed during startup/active frames has no effect
+            // (recovery's cancel check below only sees a same-frame press,
+            // not one held from earlier in the attack) and is silently
+            // dropped instead of firing the moment recovery begins.
+            apply_jump_buffer(player, input);
+
             int recovery_start = at.startup_frames + at.active_frames;
             int total_frames = recovery_start + at.recovery_frames;
 
             bool in_recovery = player.action_timer >= recovery_start;
-            bool jump_pressed_edge = input.jump_held && ! player.prev_jump_held;
 
             // Attack cancel: recovery frames let you move, jump or dodge immediately.
             if(in_recovery && dodge_pressed && player.grounded)
@@ -356,11 +362,10 @@ namespace game
                 return;
             }
 
-            if(in_recovery && jump_pressed_edge)
+            if(in_recovery && player.jump_buffer_frames > 0)
             {
                 player.action = action_kind::none;
                 player.velocity_x = 0;
-                player.jump_buffer_frames = difficulty::player_input_buffer_frames;
                 apply_gravity(player, mt);
                 try_jump(player, mt);
                 move_and_collide(player);
