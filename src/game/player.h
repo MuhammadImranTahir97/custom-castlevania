@@ -38,6 +38,14 @@ namespace game
         int jump_buffer_frames = 0;
         bool prev_jump_held = false;
 
+        // Double (SPEC.md's relic table: "Double jump" — Catacombs boss
+        // reward, rooms.md's catacombs_18). Relics are shared between
+        // characters (SPEC.md section 3), so this isn't per-character.
+        // used_double_jump resets in move_and_collide the moment the
+        // player lands — see try_jump (player.cpp).
+        bool has_double_jump = false;
+        bool used_double_jump = false;
+
         int facing = 1; // +1 = right, -1 = left
 
         // The seven stats (SPEC.md section 5). max_hp/max_mp grow with level;

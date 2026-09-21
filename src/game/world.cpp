@@ -7,6 +7,9 @@ namespace game
 {
     namespace
     {
+        // Must match tools/convert_rooms.py's RELIC_TYPE_IDS.
+        constexpr int relic_type_double_jump = 0;
+
         checkpoint_info current_checkpoint;
 
         void respawn(player_state& player)
@@ -49,6 +52,20 @@ namespace game
         {
             respawn(player);
             return;
+        }
+
+        // Relics are placed in the world, never RNG (SPEC.md section 4's
+        // card-placement rule, applied the same way to relics). Not
+        // suppressed/consumed like a door crossing -- picking it up again
+        // on a later visit is harmless (has_double_jump already true stays
+        // true), matching enemy_spawner.h's "rooms respawn fresh" scope.
+        int relic_type = 0;
+
+        if(level::try_collect_relic(player.x, player.y,
+                to_fixed(player_half_width), to_fixed(player_half_height), relic_type)
+                && relic_type == relic_type_double_jump)
+        {
+            player.has_double_jump = true;
         }
 
         level::spawn_point target{};

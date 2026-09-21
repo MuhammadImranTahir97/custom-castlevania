@@ -293,6 +293,45 @@ working end-to-end this way: booting to the slot-select screen, picking a
 slot, moving into gameplay, and navigating a menu (LEFT/RIGHT + A) all in
 one batched invocation, with a screenshot at each step.
 
+## 11. Two more gotchas found doing real in-game verification (unresolved)
+
+Building on #10's working F12-screenshot method, a session doing real
+gameplay verification (does jumping X clear ledge Y, is relic Z picked
+up) hit two further problems, neither solved this time:
+
+**A. Character sprites render in the wrong color sometimes.** `player.bmp`
+and `rival.bmp` are unambiguously red (248,40,40) and cyan (60,180,200)
+in their source files (verified by reading the BMP palette directly and
+counting pixels — every pixel is that one index), but a screenshot's
+actual pixels (verified the same way, decoding the PNG by hand) sometimes
+showed the player as gold (255,222,82) instead — suspiciously close to
+`save_point`'s authored color (250,220,80), suggesting a palette-bank
+collision rather than a real "which character is active" bug. It wasn't
+consistent: the same nominal character showed correctly-red in some
+screenshots and gold in others depending on what else was on screen.
+Root cause not found. **Consequence:** don't identify a sprite by color
+in a screenshot from this project without cross-checking some other
+signal (room structure, position, HP/MP bar state) — color alone has
+already produced at least one wrong conclusion mid-investigation.
+
+**B. The debug room-warp's chosen room didn't reliably match the number
+of LEFT/RIGHT presses sent.** Scripting `N` presses of RIGHT from a known
+room and confirming with A landed one room short of `N` at least once,
+confirmed via room structure (floor width, enemy roster), not just
+guessed. Increasing the gap between presses (60ms to 150ms) didn't
+reliably fix it. Not root-caused — plausibly the same
+PostMessage-into-a-background-window limitation as #7/#9 (a queued key
+event silently dropped), but unconfirmed. **Workaround that helped but
+wasn't fully reliable either:** re-entering debug-warp mode and checking
+the actual room via structure (not the cursor's on-screen map position,
+which is itself ambiguous — rooms with no authored `map_layout.h` entry
+appear to fall back to a shared default position) before trusting a
+navigation sequence. **Not attempted:** using mGBA's own save-state
+keys to snapshot a known-good position and reload it for repeat tests,
+which would sidestep re-navigating (and re-fighting the same enemies)
+for every test case — worth trying first in a future session before
+re-deriving any of the above.
+
 ## Net result
 
 None of steps 1-6 required installing anything or touching files outside

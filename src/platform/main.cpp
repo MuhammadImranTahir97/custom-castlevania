@@ -755,6 +755,16 @@ int main()
     bn::sprite_ptr save_point_sprite = bn::sprite_items::save_point.create_sprite(0, 0);
     save_point_sprite.set_visible(false);
 
+    // Relic pickups (rooms.md: catacombs_18's Double pedestal). Reuses
+    // "save_point" for the same reason map_room_sprites does elsewhere in
+    // this file -- another special-world-object marker, no new palette
+    // bank needed. Only ever shows the room's first relic_pickup: nothing
+    // currently places more than one per room, so a whole array of these
+    // would be speculative (see level::room_relic_pickup_count/index 0
+    // below).
+    bn::sprite_ptr relic_sprite = bn::sprite_items::save_point.create_sprite(0, 0);
+    relic_sprite.set_visible(false);
+
     // HUD: top-left corner, HP row above MP row, 10 segments of 8px each.
     bn::sprite_ptr hp_hud_sprites[hud_segments] = {
         bn::sprite_items::hud_hp.create_sprite(-112, -72), bn::sprite_items::hud_hp.create_sprite(-104, -72),
@@ -1025,6 +1035,18 @@ int main()
         {
             game::level::spawn_point room_spawn = game::level::current_room_spawn_point();
             set_world_position(save_point_sprite, room_spawn.x, room_spawn.y);
+        }
+
+        // Hides once owned -- rooms don't track "already collected" (see
+        // level::try_collect_relic's comment), so player.has_double_jump
+        // itself is what stands in for that here.
+        bool relic_visible = game::level::room_relic_pickup_count() > 0 && ! player.has_double_jump;
+        relic_sprite.set_visible(relic_visible);
+
+        if(relic_visible)
+        {
+            game::level::relic_pickup_view relic = game::level::room_relic_pickup(0);
+            set_world_pixel_position(relic_sprite, relic.x + relic.width / 2, relic.y + relic.height / 2);
         }
 
         if(save_flash_frames > 0)

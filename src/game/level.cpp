@@ -158,6 +158,40 @@ namespace game::level
         return { s.type, s.x, s.y, s.facing };
     }
 
+    int room_relic_pickup_count()
+    {
+        return active_room().relic_pickup_count;
+    }
+
+    relic_pickup_view room_relic_pickup(int index)
+    {
+        const room_data::relic_pickup_def& r = active_room().relic_pickups[index];
+        return { r.type, r.x, r.y, r.width, r.height };
+    }
+
+    bool try_collect_relic(fixed x, fixed y, fixed half_width, fixed half_height, int& out_type)
+    {
+        const room_data::room_def& room = active_room();
+
+        for(int i = 0; i < room.relic_pickup_count; ++i)
+        {
+            const room_data::relic_pickup_def& r = room.relic_pickups[i];
+            fixed left = to_fixed(r.x);
+            fixed right = to_fixed(r.x + r.width);
+            fixed top = to_fixed(r.y);
+            fixed bottom = to_fixed(r.y + r.height);
+
+            if(x + half_width >= left && x - half_width <= right
+                    && y + half_height >= top && y - half_height <= bottom)
+            {
+                out_type = r.type;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     fixed ground_top_y_at(fixed x, fixed reference_y)
     {
         const room_data::room_def& room = active_room();

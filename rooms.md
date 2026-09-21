@@ -223,15 +223,23 @@ Exits:
   E → catacombs_10 [gate: Double]
 Layout:
   Vertical shaft. Staggered platforms climbing the left wall.
-  High ledge on the east side, UNREACHABLE without Double.
+  High doorway in the east wall, 68px above the floor -- UNREACHABLE
+  without Double (Rival's single-jump apex is ~65px; Hunter's double
+  jump reaches ~74-77px with a comfortably-timed second press).
 Enemies:
   3x Bat (erratic, swoop on approach)
   2x Fleaman (chaotic hopping between platforms)
 Items:
   2x Candle
 Notes:
-  🔑 FIRST VISIBLE GATE. The east ledge is clearly reachable-looking but
-  is not. The player must see it, fail, and remember it.
+  🔑 FIRST VISIBLE GATE. Standing under the east doorway and jumping
+  straight up is the obvious first thing to try; it doesn't reach. The
+  player must see it, fail, and remember it. No platform sits in front
+  of the doorway (grey-box: a floating platform there blocks ground-
+  level approach entirely under this engine's wall-collision rule --
+  see src/game/player.cpp's move_and_collide comment -- so the door
+  itself is the only marker for now; a real sprite/ledge lip is later
+  visual polish, not a functional requirement).
   This room teaches the entire Metroidvania loop.
 ```
 

@@ -93,7 +93,7 @@ better? If one dominates, fix the balance now — it only gets harder later.
 - [ ] Pause menu — all 5 tabs
 - [ ] Map screen with sealed-door markers
 - [x] **Arcana working** — 2 Action × 3 Attribute cards (6 combos)
-- [ ] First relic (Dash Boots) and one real gate it opens
+- [x] First relic (Double) and one real gate it opens
 - [x] Death and respawn
 
 ### 🔴 CHECKPOINT — the honest one

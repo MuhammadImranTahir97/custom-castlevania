@@ -151,12 +151,29 @@ namespace game
         {
             bool can_coyote_jump = player.frames_since_grounded <= difficulty::player_coyote_frames;
 
-            if(player.jump_buffer_frames > 0 && (player.grounded || can_coyote_jump))
+            if(player.jump_buffer_frames <= 0)
+            {
+                return;
+            }
+
+            if(player.grounded || can_coyote_jump)
             {
                 player.velocity_y = t.jump_velocity;
                 player.grounded = false;
                 player.jump_buffer_frames = 0;
                 player.frames_since_grounded = difficulty::player_coyote_frames + 1;
+                return;
+            }
+
+            // Double -- one extra mid-air jump, recharged on landing (see
+            // move_and_collide). Same jump_velocity as the first jump, from
+            // wherever the player currently is, not added to existing
+            // velocity -- a fresh jump arc, not a boost.
+            if(player.has_double_jump && ! player.used_double_jump)
+            {
+                player.velocity_y = t.jump_velocity;
+                player.used_double_jump = true;
+                player.jump_buffer_frames = 0;
             }
         }
 
@@ -224,6 +241,7 @@ namespace game
                 player.velocity_y = 0;
                 player.grounded = true;
                 player.frames_since_grounded = 0;
+                player.used_double_jump = false;
             }
             else
             {

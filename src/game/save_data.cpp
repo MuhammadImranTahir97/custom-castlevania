@@ -22,6 +22,8 @@ namespace game
         slot.intelligence = player.intelligence;
         slot.lck = player.lck;
 
+        slot.has_double_jump = player.has_double_jump;
+
         slot.checkpoint_room_index = checkpoint_room_index;
         slot.checkpoint_x = checkpoint_x;
         slot.checkpoint_y = checkpoint_y;
@@ -43,5 +45,7 @@ namespace game
         player.def = slot.def;
         player.intelligence = slot.intelligence;
         player.lck = slot.lck;
+
+        player.has_double_jump = slot.has_double_jump;
     }
 }

@@ -122,6 +122,32 @@ namespace game::level
     int room_enemy_spawn_count();
     enemy_spawn_view room_enemy_spawn(int index);
 
+    // Plain-pixel view of one relic pickup in the active room.
+    // type: see tools/convert_rooms.py's RELIC_TYPE_IDS.
+    struct relic_pickup_view
+    {
+        int type;
+        int x;
+        int y;
+        int width;
+        int height;
+    };
+
+    // Read-only access to the active room's relic pickups, for rendering.
+    int room_relic_pickup_count();
+    relic_pickup_view room_relic_pickup(int index);
+
+    // If the (half_width, half_height) box centered on (x, y) overlaps a
+    // relic pickup in the active room, fills *out_type with its type (see
+    // relic_pickup_view) and returns true. Unlike try_cross_door, this
+    // doesn't move the player or suppress anything -- rooms aren't tracked
+    // as "already collected" across re-entry yet (enemy_spawner.h's rooms
+    // respawn fresh on re-entry; relic pickups are the same), so the
+    // caller (world.cpp) is expected to make applying the result
+    // idempotent (setting an already-true "has this relic" flag again is
+    // harmless).
+    bool try_collect_relic(fixed x, fixed y, fixed half_width, fixed half_height, int& out_type);
+
     // Returns the y of the closest surface under x that's at or below
     // reference_y, in the active room — no_ground_y if there isn't one.
     //

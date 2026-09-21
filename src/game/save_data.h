@@ -17,13 +17,13 @@ namespace game
     // older build — bump this if save_slot_data's layout ever changes.
     constexpr unsigned int save_magic = 0x434f544d; // "COTM"
 
-    // Everything currently meaningful to persist: stats, character, and
-    // the checkpoint (SPEC.md: death respawns at the last save room, so
+    // Everything currently meaningful to persist: stats, character, relics,
+    // and the checkpoint (SPEC.md: death respawns at the last save room, so
     // that's what "continue" needs to restore). Deliberately NOT here yet:
-    // inventory, Arcana cards, relics, map exploration, playtime — SPEC.md
-    // lists them as saved data too, but none of those are systems in the
-    // game yet (see ROADMAP.md). Add fields here once they exist, rather
-    // than inventing placeholder data for systems that don't.
+    // inventory, Arcana cards, map exploration, playtime — SPEC.md lists
+    // them as saved data too, but none of those are systems in the game
+    // yet (see ROADMAP.md). Add fields here once they exist, rather than
+    // inventing placeholder data for systems that don't.
     struct save_slot_data
     {
         unsigned int magic = 0;
@@ -42,6 +42,8 @@ namespace game
         int def = 0;
         int intelligence = 0;
         int lck = 0;
+
+        bool has_double_jump = false;
 
         int checkpoint_room_index = 0;
         fixed checkpoint_x = 0;
