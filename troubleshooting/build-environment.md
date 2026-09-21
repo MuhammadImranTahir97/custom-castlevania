@@ -332,6 +332,69 @@ which would sidestep re-navigating (and re-fighting the same enemies)
 for every test case — worth trying first in a future session before
 re-deriving any of the above.
 
+## 12. Adding a sprite past 128 total crashes with a Butano error screen (resolved)
+
+**Problem:** after adding one more dedicated `bn::sprite_ptr` (a grey-box
+marker for the Rival's unlock trigger), the ROM booted into a black
+screen with red/white/blue text instead of gameplay. FPS in the window
+title still read normally and the window was responsive — this looked
+like a screenshot-capture glitch at first (see entries #7-11), not a
+crash.
+
+**Cause:** it wasn't a capture bug. The F12 framebuffer screenshot
+(entry #10) showed a real Butano error overlay: `ERROR in
+bn_sprites_manager.cpp create::281 -- No more sprite items available`.
+`BN_CFG_SPRITES_MAX_ITEMS` defaults to 128 (`bn_config_sprites.h`) --
+a software pool sized to match the GBA's 128 hardware OAM sprites,
+`BN_BASIC_ASSERT`-enforced, hard crash on the 129th `create_sprite()`
+call. `grep -o "create_sprite" src/platform/main.cpp | wc -l` (note:
+`grep -c` counts matching *lines*, not occurrences -- multiple calls on
+one line undercounts) showed the project was already at exactly 128
+before this session's change, with zero headroom left.
+
+**Fix:** don't add a new dedicated sprite; reuse an existing pool slot
+that's provably idle in the one room that needs the new visual (an enemy
+type's sprite array, index 0, in a room with zero enemies of that type
+-- `render_skeletons()`'s own count-gated visibility already leaves it
+hidden there every frame, so writing to it afterward is safe). Must run
+*after* the normal per-type render call, not before, or that call
+immediately re-hides it the same frame.
+
+**Lesson:** the 13-or-so *distinct sprite items* (`bn::sprite_items::X`)
+tracked elsewhere in this file for palette-bank budget is a different
+number from the *total live sprite_ptr count*, which is what actually
+hits this 128 ceiling. Before adding any new dedicated sprite, check
+`grep -o "create_sprite" src/platform/main.cpp | wc -l` against 128, not
+just how many distinct items are already loaded.
+
+## 13. A reliable way to verify SRAM save persistence (worked first try)
+
+Verifying "did the save survive power-off" by reading rendered
+screenshots ran into the same character-color ambiguity as entries
+#9/#11. Reading the `.sav` file's actual bytes instead sidesteps all of
+that:
+
+```
+python -c "
+import struct
+with open('cot-hack.sav','rb') as f:
+    data = f.read()
+print(data[0:4])  # magic, 'MTOC' little-endian for save_magic 0x434f544d
+# then struct.unpack('<i', data[offset:offset+4]) per save_slot_data's
+# field order, in declaration order, to read any int/bool field directly
+"
+```
+
+This gave byte-exact confirmation of every field (`character`,
+`checkpoint_room_index`, `has_double_jump`, `rival_unlocked`, ...)
+without needing to identify anything by its rendered appearance. Paired
+with two visual checks that don't depend on color either: the file's
+mtime staying unchanged across `game.mjs stop` (proves mGBA had already
+flushed it to disk, no clean-shutdown step needed), and the slot-select
+screen's occupied-slot marker (`bone`-reused, position-only signal)
+appearing after a fully fresh relaunch. Together these fully verify a
+save round-trip without ever relying on sprite color.
+
 ## Net result
 
 None of steps 1-6 required installing anything or touching files outside

@@ -87,8 +87,10 @@ better? If one dominates, fix the balance now — it only gets harder later.
 - [x] One complete area: **Catacombs**, all 18 rooms placed and connected (boss AI itself is separate, below)
 - [x] 6 enemy types placed and balanced (Skeleton, Bat, Skeleton Archer, Zombie, Bone Pillar, Fleaman) — Medusa Head also built, past the 6 called for here
 - [x] **First boss** with real attack patterns and phases
-- [ ] Save system (SRAM, 3 slots) — save *rooms* work (below); persisting to the
-      cartridge across power-off is still open
+- [x] Save system (SRAM, 3 slots) — power-off persistence verified 2026-09-21:
+      saved, closed mGBA fully, relaunched, slot showed occupied, loaded
+      correctly (checkpoint room, relics, Rival unlock all confirmed --
+      see troubleshooting/build-environment.md)
 - [x] Save rooms restoring HP/MP
 - [ ] Pause menu — all 5 tabs
 - [ ] Map screen with sealed-door markers
@@ -105,6 +107,13 @@ save it.** Stop, or redesign, or restart. Do not push to M4 hoping volume
 fixes it.
 
 If M3 *is* fun — you have a real game and the rest is execution.
+
+**✅ PASSED — 2026-09-21.** Played through it; would play it if someone
+else had made it. M3 stands even with two line items above still
+structural-only (the Items/Options pause tabs, empty because no
+inventory/settings systems exist yet) — that doesn't change whether the
+core loop is fun, which is what this checkpoint actually tests.
+Proceeding to M4.
 
 ---
 

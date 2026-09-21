@@ -1087,6 +1087,29 @@ int main()
         render_bone_colossus(bone_colossus_sprite, bone_colossus_hitbox_sprite, bone_colossus_rib_sprites);
         render_hud(hp_hud_sprites, mp_hud_sprites, player);
 
+        // The Rival, trapped (rooms.md: catacombs_18) -- reuses
+        // skeleton_sprites[0] rather than a new dedicated sprite. Butano's
+        // sprite-item pool is a hard 128 (BN_CFG_SPRITES_MAX_ITEMS,
+        // BN_BASIC_ASSERT-enforced, crashes on the 129th), and this
+        // project was already sitting exactly at that ceiling -- one more
+        // dedicated sprite doesn't fit. Safe to borrow, and must run after
+        // render_skeletons() above, not before: catacombs_18 has zero
+        // enemies, so render_skeletons() always leaves every
+        // skeleton_sprites slot hidden there (active_skeleton_count() is
+        // 0) -- if this ran first, that call would immediately re-hide
+        // slot 0 again the same frame. Same idempotent-hide logic as
+        // relic_sprite above, keyed on rival_unlocked instead of
+        // has_double_jump.
+        bool rival_trapped_visible = game::level::room_unlock_trigger_count() > 0 && ! player.rival_unlocked;
+        skeleton_sprites[0].set_visible(rival_trapped_visible);
+
+        if(rival_trapped_visible)
+        {
+            game::level::unlock_trigger_view trapped = game::level::room_unlock_trigger(0);
+            set_world_pixel_position(skeleton_sprites[0], trapped.x + trapped.width / 2,
+                    trapped.y + trapped.height / 2);
+        }
+
         bn::core::update();
     }
 }
